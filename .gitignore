@@ -1,14 +1,9 @@
-ChangeLog.md
-CITATION.cff
 
 tests/
-examples/
 .github/
 .readthedocs.yaml
 docs/
 .flake8
-README.md
-setup.py
 
 examples/wrapper/history/
 # Pycharm
