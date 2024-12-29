@@ -1,14 +1,13 @@
 ChangeLog.md
 CITATION.cff
-MANIFEST.in
-run_fs.py
-requirements.txt
+
 tests/
 examples/
+.github/
+.readthedocs.yaml
 docs/
 .flake8
 README.md
-intelelm/
 setup.py
 
 examples/wrapper/history/
