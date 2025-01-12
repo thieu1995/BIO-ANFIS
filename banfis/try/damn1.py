@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Created by "Thieu" at 22:52, 29/12/2024 ----------%
+# Created by "Thieu" at 15:21, 11/01/2025 ----------%
 #       Email: nguyenthieu2102@gmail.com            %                                                    
 #       Github: https://github.com/thieu1995        %                         
 # --------------------------------------------------%
@@ -7,7 +7,30 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from banfis.helpers.membership_family import GaussianMembership
+
+
+class BaseMembership(nn.Module):
+    def __init__(self):
+        super(BaseMembership, self).__init__()
+
+    def forward(self, X):
+        """
+        Calculate membership values for given input X.
+        :param X: Input data (N x input_dim).
+        :param params: Parameters for the membership function.
+        :return: Membership values (N,).
+        """
+        raise NotImplementedError("Subclasses must implement the forward method.")
+
+
+class GaussianMembership(BaseMembership):
+    def __init__(self, input_dim):
+        super(GaussianMembership, self).__init__()
+        self.a = nn.Parameter(torch.randn(input_dim))  # Centers
+        self.b = nn.Parameter(torch.abs(torch.randn(input_dim)))  # Widths
+
+    def forward(self, X):
+        return torch.exp(-((X - self.a) ** 2) / (2 * torch.clamp(self.b, min=1e-8) ** 2))
 
 
 class ANFIS(nn.Module):
@@ -70,5 +93,4 @@ if __name__ == "__main__":
     # Final predictions
     final_predictions = anfis.forward(X)
     print("Final Loss:", loss_fn(final_predictions, y).item())
-
 
