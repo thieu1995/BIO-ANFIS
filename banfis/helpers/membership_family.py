@@ -4,22 +4,97 @@
 #       Github: https://github.com/thieu1995        %                         
 # --------------------------------------------------%
 
+from typing import Optional, Type, Dict, Any
 import torch
 import torch.nn as nn
 
 
 class BaseMembership(nn.Module):
-    def __init__(self):
+    """Base class for membership functions."""
+
+    def __init__(self) -> None:
         super(BaseMembership, self).__init__()
 
-    def forward(self, X):
+    def forward(self, X: torch.Tensor) -> torch.Tensor:
         """
         Calculate membership values for given input X.
-        :param X: Input data (N x input_dim).
-        :param params: Parameters for the membership function.
-        :return: Membership values (N,).
+
+        Args:
+            X: Input tensor of shape (batch_size, input_dim)
+
+        Returns:
+            Tensor of membership values of shape (batch_size,)
+
+        Raises:
+            NotImplementedError: If not implemented by subclass
         """
         raise NotImplementedError("Subclasses must implement the forward method.")
+
+    def get_parameters(self) -> Dict[str, torch.Tensor]:
+        """
+        Get the current parameters of the membership function.
+
+        Returns:
+            Dictionary containing parameter names and values
+        """
+        return {name: param.data for name, param in self.named_parameters()}
+
+
+class GaussianMembership(BaseMembership):
+    """Gaussian membership function implementation."""
+
+    def __init__(self, input_dim: int) -> None:
+        """
+        Initialize Gaussian membership function.
+
+        Args:
+            input_dim: Number of input features
+        """
+        super(GaussianMembership, self).__init__()
+        self.centers = nn.Parameter(torch.randn(input_dim))  # Centers
+        self.widths = nn.Parameter(torch.abs(torch.randn(input_dim)))  # Widths
+
+    def forward(self, X: torch.Tensor) -> torch.Tensor:
+        """
+        Calculate Gaussian membership values.
+
+        Args:
+            X: Input tensor of shape (batch_size, input_dim)
+
+        Returns:
+            Tensor of membership values of shape (batch_size,)
+        """
+        return torch.exp(-((X - self.centers) ** 2) / (2 * torch.clamp(self.widths, min=1e-8) ** 2))
+
+
+# class TriangularMembership(BaseMembership):
+#     """Triangular membership function implementation."""
+#
+#     def __init__(self, input_dim: int) -> None:
+#         """
+#         Initialize Triangular membership function.
+#
+#         Args:
+#             input_dim: Number of input features
+#         """
+#         super(TriangularMembership, self).__init__()
+#         self.centers = nn.Parameter(torch.randn(input_dim))
+#         self.left_spread = nn.Parameter(torch.abs(torch.randn(input_dim)))
+#         self.right_spread = nn.Parameter(torch.abs(torch.randn(input_dim)))
+#
+#     def forward(self, X: torch.Tensor) -> torch.Tensor:
+#         """
+#         Calculate Triangular membership values.
+#
+#         Args:
+#             X: Input tensor of shape (batch_size, input_dim)
+#
+#         Returns:
+#             Tensor of membership values of shape (batch_size,)
+#         """
+#         left_side = (X - (self.centers - self.left_spread)) / torch.clamp(self.left_spread, min=1e-8)
+#         right_side = ((self.centers + self.right_spread) - X) / torch.clamp(self.right_spread, min=1e-8)
+#         return torch.maximum(torch.minimum(left_side, right_side), torch.zeros_like(X))
 
 
 class TriangularMembership(BaseMembership):
@@ -35,15 +110,41 @@ class TriangularMembership(BaseMembership):
         return torch.clamp(torch.min(left, right), min=0)
 
 
+class TriangularMembership(BaseMembership):
+    def __init__(self, input_dim: int) -> None:
+        super(TriangularMembership, self).__init__()
+        # Khởi tạo centers trong khoảng [0, 1] vì data của chúng ta cũng nằm trong khoảng này
+        self.centers = nn.Parameter(torch.rand(input_dim))
+        # Khởi tạo spread với giá trị dương và không quá nhỏ
+        self.left_spread = nn.Parameter(torch.ones(input_dim) * 0.5)
+        self.right_spread = nn.Parameter(torch.ones(input_dim) * 0.5)
 
-class GaussianMembership(BaseMembership):
-    def __init__(self, input_dim):
-        super(GaussianMembership, self).__init__()
-        self.a = nn.Parameter(torch.randn(input_dim))  # Centers
-        self.b = nn.Parameter(torch.abs(torch.randn(input_dim)))  # Widths
+    def forward(self, X: torch.Tensor) -> torch.Tensor:
+        # Đảm bảo spread luôn dương và không quá nhỏ
+        left_spread = torch.abs(self.left_spread) + 1e-4
+        right_spread = torch.abs(self.right_spread) + 1e-4
 
-    def forward(self, X):
-        return torch.exp(-((X - self.a) ** 2) / (2 * torch.clamp(self.b, min=1e-8) ** 2))
+        # Tính toán membership values
+        left_side = (X - (self.centers - left_spread)) / left_spread
+        right_side = ((self.centers + right_spread) - X) / right_spread
+
+        # Sử dụng torch.relu thay vì torch.maximum để đảm bảo gradient flow tốt hơn
+        membership = torch.minimum(
+            torch.relu(left_side),
+            torch.relu(right_side)
+        )
+
+        return membership
+
+#
+# class GaussianMembership(BaseMembership):
+#     def __init__(self, input_dim):
+#         super(GaussianMembership, self).__init__()
+#         self.a = nn.Parameter(torch.randn(input_dim))  # Centers
+#         self.b = nn.Parameter(torch.abs(torch.randn(input_dim)))  # Widths
+#
+#     def forward(self, X):
+#         return torch.exp(-((X - self.a) ** 2) / (2 * torch.clamp(self.b, min=1e-8) ** 2))
 
 
 class SigmoidMembership(BaseMembership):

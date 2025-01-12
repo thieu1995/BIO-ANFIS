@@ -1,150 +1,64 @@
 #!/usr/bin/env python
-# Created by "Thieu" at 11:23, 12/01/2025 ----------%
-#       Email: nguyenthieu2102@gmail.com            %
-#       Github: https://github.com/thieu1995        %
+# Created by "Thieu" at 22:43, 12/01/2025 ----------%
+#       Email: nguyenthieu2102@gmail.com            %                                                    
+#       Github: https://github.com/thieu1995        %                         
 # --------------------------------------------------%
 
-
-from typing import Optional, Type, Dict, Any
+from typing import Optional, Type, Dict, Any, Union
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import numpy as np
+import banfis.helpers.membership_family as memfa
 
-
-class BaseMembership(nn.Module):
-    """Base class for membership functions."""
-
-    def __init__(self) -> None:
-        super(BaseMembership, self).__init__()
-
-    def forward(self, X: torch.Tensor) -> torch.Tensor:
-        """
-        Calculate membership values for given input X.
-
-        Args:
-            X: Input tensor of shape (batch_size, input_dim)
-
-        Returns:
-            Tensor of membership values of shape (batch_size,)
-
-        Raises:
-            NotImplementedError: If not implemented by subclass
-        """
-        raise NotImplementedError("Subclasses must implement the forward method.")
-
-    def get_parameters(self) -> Dict[str, torch.Tensor]:
-        """
-        Get the current parameters of the membership function.
-
-        Returns:
-            Dictionary containing parameter names and values
-        """
-        return {name: param.data for name, param in self.named_parameters()}
-
-
-class GaussianMembership(BaseMembership):
-    """Gaussian membership function implementation."""
-
-    def __init__(self, input_dim: int) -> None:
-        """
-        Initialize Gaussian membership function.
-
-        Args:
-            input_dim: Number of input features
-        """
-        super(GaussianMembership, self).__init__()
-        self.centers = nn.Parameter(torch.randn(input_dim))  # Centers
-        self.widths = nn.Parameter(torch.abs(torch.randn(input_dim)))  # Widths
-
-    def forward(self, X: torch.Tensor) -> torch.Tensor:
-        """
-        Calculate Gaussian membership values.
-
-        Args:
-            X: Input tensor of shape (batch_size, input_dim)
-
-        Returns:
-            Tensor of membership values of shape (batch_size,)
-        """
-        return torch.exp(-((X - self.centers) ** 2) / (2 * torch.clamp(self.widths, min=1e-8) ** 2))
-
-
-class TriangularMembership(BaseMembership):
-    """Triangular membership function implementation."""
-
-    def __init__(self, input_dim: int) -> None:
-        """
-        Initialize Triangular membership function.
-
-        Args:
-            input_dim: Number of input features
-        """
-        super(TriangularMembership, self).__init__()
-        self.centers = nn.Parameter(torch.randn(input_dim))
-        self.left_spread = nn.Parameter(torch.abs(torch.randn(input_dim)))
-        self.right_spread = nn.Parameter(torch.abs(torch.randn(input_dim)))
-
-    def forward(self, X: torch.Tensor) -> torch.Tensor:
-        """
-        Calculate Triangular membership values.
-
-        Args:
-            X: Input tensor of shape (batch_size, input_dim)
-
-        Returns:
-            Tensor of membership values of shape (batch_size,)
-        """
-        left_side = (X - (self.centers - self.left_spread)) / torch.clamp(self.left_spread, min=1e-8)
-        right_side = ((self.centers + self.right_spread) - X) / torch.clamp(self.right_spread, min=1e-8)
-        return torch.maximum(torch.minimum(left_side, right_side), torch.zeros_like(X))
-
-
-# ... (giữ nguyên các import và các class BaseMembership, GaussianMembership, TriangularMembership)
 
 class ANFIS(nn.Module):
-    """Adaptive Neuro-Fuzzy Inference System implementation with multi-output support."""
+    """Adaptive Neuro-Fuzzy Inference System implementation with multi-output support.
 
-    def __init__(self,
-                 input_dim: int,
-                 num_rules: int,
-                 output_dim: int,
-                 membership_class: Type[BaseMembership]) -> None:
-        """
-        Initialize ANFIS network.
+    Args:
+        input_dim: Number of input features
+        num_rules: Number of fuzzy rules
+        output_dim: Number of output dimensions
+        membership_class: Class for membership function
 
-        Args:
-            input_dim: Number of input features
-            num_rules: Number of fuzzy rules
-            output_dim: Number of output dimensions
-            membership_class: Class for membership function
+    Raises:
+        AssertionError: If input parameters are invalid
+    """
 
-        Raises:
-            AssertionError: If input parameters are invalid
-        """
+    SUPPPORT_MEMBERSHIP = {
+        "gaussian": "GaussianMembership",
+        "triangular": "TriangularMembership",
+        "sigmoid": "SigmoidMembership",
+        "trapezoidal": "TrapezoidalMembership",
+        "pishaped": "PiShapedMembership",
+    }
+
+    def __init__(self, input_dim: int, num_rules: int, output_dim: int,
+                 membership_class: Union[str, Type[memfa.BaseMembership]]) -> None:
         super(ANFIS, self).__init__()
 
         # Validate input parameters
         assert input_dim > 0, "input_dim must be positive"
         assert num_rules > 0, "num_rules must be positive"
         assert output_dim > 0, "output_dim must be positive"
-        assert issubclass(membership_class, BaseMembership), \
-            "membership_class must inherit from BaseMembership"
+        if type(membership_class) is str:
+            membership_class = self.SUPPPORT_MEMBERSHIP.get(membership_class)
+            if membership_class is None:
+                raise ValueError(f"Membership class named {membership_class} is not supported.")
+            membership_class = getattr(memfa, membership_class)
+        else:
+            if not issubclass(membership_class, memfa.BaseMembership):
+                raise TypeError(f"if membership_class is a custom, it must inherit from BaseMembership.")
 
         self.input_dim = input_dim
         self.num_rules = num_rules
         self.output_dim = output_dim
 
         # Initialize membership functions for each rule
-        self.memberships = nn.ModuleList(
-            [membership_class(input_dim) for _ in range(num_rules)]
-        )
+        self.memberships = nn.ModuleList([membership_class(input_dim) for _ in range(num_rules)])
 
         # Initialize consequent parameters for each rule and each output
         # Shape: (num_rules, input_dim + 1, output_dim)
-        self.consequents = nn.Parameter(
-            torch.zeros(num_rules, input_dim + 1, output_dim)
-        )
+        self.consequents = nn.Parameter(torch.zeros(num_rules, input_dim + 1, output_dim))
 
     def get_rule_weights(self, X: torch.Tensor) -> torch.Tensor:
         """
@@ -254,27 +168,31 @@ class ANFIS(nn.Module):
         return model
 
 
-
 def example_usage():
     """Example usage of the ANFIS network with multiple outputs."""
     # Set random seed for reproducibility
     torch.manual_seed(0)
 
     # Generate dummy data with multiple outputs
-    X = torch.rand((100, 2))  # 100 samples, 2 features
+    X = torch.rand((200, 5))  # 100 samples, 2 features
 
+    # Số lượng mẫu num_samples = 200 # Tạo dữ liệu ngẫu nhiên cho 5 input đầu vào (X1, X2, X3, X4, X5)
+    # X = np.random.rand(num_samples, 5) # Tạo dữ liệu ngẫu nhiên cho 2 output đầu ra (Y1, Y2) Y = np.random.rand(num_samples, 2)
+
+    y = torch.rand((200, 2))
     # Create two target functions
-    y1 = torch.sin(X[:, 0]) + torch.cos(X[:, 1])  # First target
-    y2 = torch.exp(-((X[:, 0]) ** 2 + (X[:, 1]) ** 2))  # Second target
-    y = torch.stack([y1, y2], dim=1)  # Shape: (100, 2)
+    # y1 = torch.sin(X[:, 0]) + torch.cos(X[:, 1])  # First target
+    # y2 = torch.exp(-((X[:, 0]) ** 2 + (X[:, 1]) ** 2))  # Second target
+    # y = torch.stack([y1, y2], dim=1)  # Shape: (100, 2)
 
     # Initialize ANFIS model with 2 outputs
-    anfis = ANFIS(
-        input_dim=2,
-        num_rules=3,
-        output_dim=2,  # Now we have 2 outputs
-        membership_class=GaussianMembership
-    )
+    anfis = ANFIS(input_dim=5, num_rules=5, output_dim=2, membership_class="pishaped")
+
+    #         "gaussian": "GaussianMembership",
+    #         "triangular": "TriangularMembership",
+    #         "sigmoid": "SigmoidMembership",
+    #         "trapezoidal": "TrapezoidalMembership",
+    #         "pishaped": "PiShapedMembership",
 
     # Initialize optimizer and loss function
     optimizer = optim.Adam(anfis.parameters(), lr=0.01)
@@ -303,9 +221,9 @@ def example_usage():
             print(f"  Output 2 Loss = {loss_2.item():.4f}")
 
     # Test prediction
-    test_input = torch.tensor([[0.5, 0.5]], dtype=torch.float32)
+    test_input = torch.tensor([[0.5, 0.2, 0.1, 0.7, 0.55]], dtype=torch.float32)
     test_prediction = anfis(test_input)
-    print("\nTest prediction for input [0.5, 0.5]:")
+    print("\nTest prediction for input [0.5, 0.2, 0.1, 0.7, 0.55]:")
     print(f"Output 1: {test_prediction[0, 0].item():.4f}")
     print(f"Output 2: {test_prediction[0, 1].item():.4f}")
 
