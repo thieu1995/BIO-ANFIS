@@ -303,3 +303,26 @@ class SShapedMembership(BaseMembership):
 
         return left * 0 + middle1 * term1 + middle2 * term2 + right
 
+
+class LinearMembership(BaseMembership):
+    """
+    Linear membership function implementation.
+
+    This membership function is defined by a linear ramp between two points.
+
+    Args:
+        input_dim (int): Number of input features.
+
+    Attributes:
+        a (nn.Parameter): Start of the ramp.
+        b (nn.Parameter): End of the ramp.
+    """
+
+    def __init__(self, input_dim):
+        super().__init__()
+        self.a = nn.Parameter(torch.rand(input_dim))
+        self.b = nn.Parameter(torch.rand(input_dim))
+
+    def forward(self, x):
+        slope = (x - self.a) / (self.b - self.a + 1e-6)
+        return torch.clamp(slope, 0.0, 1.0)
