@@ -76,3 +76,42 @@ class GaussianMembership(BaseMembership):
         """
         return torch.exp(-((X - self.centers) ** 2) / (2 * torch.clamp(self.widths, min=1e-8) ** 2))
 
+
+class TrapezoidalMembership(BaseMembership):
+    """Trapezoidal membership function implementation."""
+
+    def __init__(self, input_dim: int) -> None:
+        """
+        Initialize the Trapezoidal membership function.
+
+        Args:
+            input_dim (int): Number of input features.
+        """
+        super().__init__()
+        # Ta khởi tạo theo thứ tự rồi dùng sigmoid để đảm bảo đúng thứ tự a < b < c < d
+        self.raw_params = nn.Parameter(torch.rand(4, input_dim))  # [a, b, c, d]
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Calculate Trapezoidal membership values.
+
+        Args:
+            x (torch.Tensor): Input tensor of shape (batch_size, input_dim).
+
+        Returns:
+            torch.Tensor: Tensor of membership values of shape (batch_size,).
+        """
+        # Sort theo chiều tăng để đảm bảo thứ tự đúng
+        abcd = torch.sort(self.raw_params, dim=0).values
+        a, b, c, d = abcd[0], abcd[1], abcd[2], abcd[3]
+
+        ramp_up = torch.clamp((x - a) / (b - a + 1e-6), 0.0, 1.0)
+        plateau = torch.ones_like(x)
+        ramp_down = torch.clamp((d - x) / (d - c + 1e-6), 0.0, 1.0)
+
+        membership = torch.where(x <= a, 0.0,
+                         torch.where(x < b, ramp_up,
+                         torch.where(x <= c, plateau,
+                         torch.where(x < d, ramp_down, 0.0))))
+        return membership
+
