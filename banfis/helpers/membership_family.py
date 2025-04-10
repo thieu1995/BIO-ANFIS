@@ -180,3 +180,35 @@ class SigmoidMembership(BaseMembership):
         """
         return 1 / (1 + torch.exp(-self.a * (X - self.b)))
 
+
+class PiShapedMembership(BaseMembership):
+    """
+    Pi-shaped membership function implementation.
+
+    This membership function is characterized by a rising edge, a plateau, and a falling edge,
+    forming a shape similar to the Greek letter Pi (π).
+
+    Args:
+        input_dim (int): Number of input features.
+
+    Attributes:
+        a (nn.Parameter): Start of the rising edge.
+        b (nn.Parameter): Start of the plateau.
+        c (nn.Parameter): End of the plateau.
+        d (nn.Parameter): End of the falling edge.
+    """
+
+    def __init__(self, input_dim):
+        super().__init__()
+        self.a = nn.Parameter(torch.rand(input_dim))  # Start of the ramp
+        self.b = nn.Parameter(torch.rand(input_dim))  # Peak start
+        self.c = nn.Parameter(torch.rand(input_dim))  # Peak end
+        self.d = nn.Parameter(torch.rand(input_dim))  # End of the ramp
+
+    def forward(self, x):
+        ramp_up = (x - self.a) / (self.b - self.a + 1e-6)
+        ramp_down = (self.d - x) / (self.d - self.c + 1e-6)
+        rising_edge = torch.clamp(ramp_up, min=0.0, max=1.0)
+        falling_edge = torch.clamp(ramp_down, min=0.0, max=1.0)
+        return torch.min(rising_edge, falling_edge)
+
