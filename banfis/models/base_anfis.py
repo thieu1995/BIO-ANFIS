@@ -579,3 +579,220 @@ class BaseAnfis(BaseEstimator):
             filename += ".pkl"
         return pickle.load(open(f"{load_path}/{filename}", 'rb'))
 
+
+class BaseStandardAnfis(BaseAnfis):
+    """
+    A custom standard ANFIS class that extends the BaseAnfis class with
+    additional features such as early stopping, validation, and various supported optimizers.
+
+    Attributes
+    ----------
+    SUPPORTED_OPTIMIZERS : list
+        A list of optimizer names supported by the class.
+    epochs : int
+        Number of training epochs.
+    batch_size : int
+        Size of each training batch.
+    optim : str
+        Name of the optimizer to use from SUPPORTED_OPTIMIZERS.
+    optim_params : dict
+        Additional parameters for the optimizer.
+    early_stopping : bool
+        Flag to enable early stopping.
+    n_patience : int
+        Number of epochs to wait before stopping if no improvement.
+    epsilon : float
+        Minimum change to qualify as improvement.
+    valid_rate : float
+        Proportion of data to use for validation.
+    verbose : bool
+        If True, outputs training progress.
+    size_input : int or None
+        Number of input features (set during training).
+    size_output : int or None
+        Number of output features (set during training).
+    network : nn.Module or None
+        The ANFIS model instance.
+    optimizer : torch.optim.Optimizer or None
+        The optimizer used for training.
+    criterion : nn.Module or None
+        The loss function used for training.
+    early_stopper : EarlyStopper or None
+        Instance of EarlyStopper for managing early stopping.
+
+    Parameters
+    ----------
+    num_rules : int
+        Number of fuzzy rules.
+    mf_class : str
+        Membership function class.
+    act_output : str or None
+        Activation function for the output layer.
+    vanishing_strategy : str or None
+        Strategy for calculating rule strengths.
+    epochs : int, optional
+        Number of training epochs (default is 1000).
+    batch_size : int, optional
+        Size of each training batch (default is 16).
+    optim : str, optional
+        Name of the optimizer to use (default is "Adam").
+    optim_params : dict, optional
+        Additional parameters for the optimizer (default is None).
+    early_stopping : bool, optional
+        Flag to enable early stopping (default is True).
+    n_patience : int, optional
+        Number of epochs to wait before stopping if no improvement (default is 10).
+    epsilon : float, optional
+        Minimum change to qualify as improvement (default is 0.001).
+    valid_rate : float, optional
+        Proportion of data to use for validation (default is 0.1).
+    seed : int, optional
+        Random seed for reproducibility (default is 42).
+    verbose : bool, optional
+        If True, outputs training progress (default is True).
+
+    Methods
+    -------
+    build_model():
+        Build and initialize the ANFIS model, optimizer, and criterion based on user specifications.
+    process_data(X, y, **kwargs):
+        Process and prepare data for training.
+    _fit(data, **kwargs):
+        Train the ANFIS model on the provided data.
+    """
+
+    SUPPORTED_OPTIMIZERS = [
+        "Adafactor", "Adadelta", "Adagrad", "Adam",
+        "Adamax", "AdamW", "ASGD", "LBFGS", "NAdam",
+        "RAdam", "RMSprop", "Rprop", "SGD", "SparseAdam",
+    ]
+
+    def __init__(self, num_rules=10, mf_class="Gaussian", act_output=None, vanishing_strategy=None,
+                 epochs=1000, batch_size=16, optim="Adam", optim_params=None,
+                 early_stopping=True, n_patience=10, epsilon=0.001, valid_rate=0.1,
+                 seed=42, verbose=True):
+        """
+        Initialize the ANFIS with user-defined architecture, training parameters, and optimization settings.
+        """
+        super().__init__(num_rules, mf_class, "classification", act_output=act_output,
+                         vanishing_strategy=vanishing_strategy,seed=seed)
+        self.epochs = epochs
+        self.batch_size = batch_size
+        self.optim = optim
+        self.optim_params = optim_params if optim_params else {}
+        self.early_stopping = early_stopping
+        self.n_patience = n_patience
+        self.epsilon = epsilon
+        self.valid_rate = valid_rate
+        self.verbose = verbose
+
+        # Internal attributes for model, optimizer, and early stopping
+        self.size_input = None
+        self.size_output = None
+        self.network = None
+        self.optimizer = None
+        self.criterion = None
+        self.patience_count = None
+        self.valid_mode = False
+        self.early_stopper = None
+
+    def build_model(self):
+        """
+        Build and initialize the ANFIS model, optimizer, and criterion based on user specifications.
+
+        This function sets up the model structure, optimizer type and parameters,
+        and loss criterion depending on the task type (classification or regression).
+        """
+        if self.early_stopping:
+            # Initialize early stopper if early stopping is enabled
+            self.early_stopper = EarlyStopper(patience=self.n_patience, epsilon=self.epsilon)
+
+        # Define model, optimizer, and loss criterion based on task
+        self.network = CustomANFIS(self.size_input, self.num_rules, self.size_output, self.mf_class,
+                                   self.task, self.act_output, self.vanishing_strategy, self.seed)
+        self.optimizer = getattr(torch.optim, self.optim)(self.network.parameters(), **self.optim_params)
+
+        # Select loss function based on task type
+        if self.task == "classification":
+            self.criterion = nn.CrossEntropyLoss()
+        elif self.task == "binary_classification":
+            self.criterion = nn.BCEWithLogitsLoss()
+        else:
+            self.criterion = nn.MSELoss()
+
+    def process_data(self, X, y, **kwargs):
+        """
+        Process and prepare data for training.
+
+        Parameters
+        ----------
+        X : array-like
+            Feature data for training.
+        y : array-like
+            Target labels or values for training.
+        **kwargs : additional keyword arguments
+            Additional parameters for data processing, if needed.
+        """
+        pass  # Placeholder for data processing logic
+
+    def _fit(self, data, **kwargs):
+        """
+        Train the ANFIS model on the provided data.
+
+        Parameters
+        ----------
+        data : tuple
+            A tuple containing (train_loader, X_valid_tensor, y_valid_tensor) for training and validation.
+        **kwargs : additional keyword arguments
+            Additional parameters for training, if needed.
+        """
+        # Unpack training and validation data
+        train_loader, X_valid_tensor, y_valid_tensor = data
+
+        # Start training
+        self.network.train()  # Set model to training mode
+        for epoch in range(self.epochs):
+            # Initialize total loss for this epoch
+            total_loss = 0.0
+
+            # Training step over batches
+            for batch_X, batch_y in train_loader:
+                self.optimizer.zero_grad()  # Clear gradients
+
+                # Forward pass
+                output = self.network(batch_X)
+                loss = self.criterion(output, batch_y)  # Compute loss
+
+                # Backpropagation and optimization
+                loss.backward()
+                self.optimizer.step()
+
+                total_loss += loss.item()  # Accumulate batch loss
+
+            # Calculate average training loss for this epoch
+            avg_loss = total_loss / len(train_loader)
+
+            # Perform validation if validation mode is enabled
+            if self.valid_mode:
+                self.network.eval()  # Set model to evaluation mode
+                with torch.no_grad():
+                    val_output = self.network(X_valid_tensor)
+                    val_loss = self.criterion(val_output, y_valid_tensor)
+
+                # Early stopping based on validation loss
+                if self.early_stopping and self.early_stopper.early_stop(val_loss):
+                    print(f"Early stopping at epoch {epoch + 1}")
+                    break
+                if self.verbose:
+                    print(f"Epoch: {epoch + 1}, Train Loss: {avg_loss:.4f}, Validation Loss: {val_loss:.4f}")
+            else:
+                # Early stopping based on training loss if no validation is used
+                if self.early_stopping and self.early_stopper.early_stop(avg_loss):
+                    print(f"Early stopping at epoch {epoch + 1}")
+                    break
+                if self.verbose:
+                    print(f"Epoch: {epoch + 1}, Train Loss: {avg_loss:.4f}")
+
+            # Return to training mode for next epoch
+            self.network.train()
+
