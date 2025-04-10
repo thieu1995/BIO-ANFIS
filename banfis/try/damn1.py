@@ -43,7 +43,7 @@ class ANFIS(nn.Module):
         self.memberships = nn.ModuleList([membership_class(input_dim) for _ in range(num_rules)])
 
         # Initialize linear coefficients for each rule
-        self.coeffs = nn.Parameter(torch.zeros(num_rules, input_dim + 1))  # Includes bias term
+        self.coeffs = nn.Parameter(torch.zeros(num_rules, input_dim + 1))  # Includes bias term (num_rules, input_dim + 1)
 
     def forward(self, X):
         # Calculate membership values for all rules (N x num_rules x input_dim)
@@ -58,7 +58,7 @@ class ANFIS(nn.Module):
 
         # Predictions (weighted sum of outputs)
         weighted_inputs = torch.matmul(X, self.coeffs[:, :-1].t()) + self.coeffs[:, -1]  # (N, num_rules)
-        predictions = torch.sum(normalized_strengths * weighted_inputs, dim=1)
+        predictions = torch.sum(normalized_strengths * weighted_inputs, dim=1)  # (N,)
 
         return predictions
 
@@ -66,11 +66,11 @@ class ANFIS(nn.Module):
 if __name__ == "__main__":
     # Generate dummy data
     torch.manual_seed(0)
-    X = torch.rand((100, 2))  # 100 samples, 2 features
+    X = torch.rand((100, 12))  # 100 samples, 2 features
     y = torch.sin(X[:, 0]) + torch.cos(X[:, 1])  # Target values
 
     # Initialize ANFIS model with Gaussian membership
-    anfis = ANFIS(input_dim=2, num_rules=3, membership_class=GaussianMembership)
+    anfis = ANFIS(input_dim=12, num_rules=4, membership_class=GaussianMembership)
 
     # Optimizer for nonlinear parameters (membership params)
     optimizer = optim.Adam(anfis.parameters(), lr=0.01)
@@ -93,4 +93,13 @@ if __name__ == "__main__":
     # Final predictions
     final_predictions = anfis.forward(X)
     print("Final Loss:", loss_fn(final_predictions, y).item())
+
+    print("Model Parameters:")
+    for name, param in anfis.named_parameters():
+        print(f"Name: {name}")
+        print(f"Shape: {param.shape}")
+        print(f"Values:\n{param.data}\n")
+
+    total_params = sum(p.numel() for p in anfis.parameters())
+    print(f"Total number of parameters: {total_params}")
 

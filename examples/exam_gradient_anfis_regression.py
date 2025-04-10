@@ -4,7 +4,7 @@
 #       Github: https://github.com/thieu1995        %                         
 # --------------------------------------------------%
 
-from banfis import Data, MlpRegressor
+from banfis import Data, AnfisRegressor
 from sklearn.datasets import load_diabetes
 
 
@@ -26,8 +26,8 @@ data.y_test = scaler_y.transform(data.y_test)
 print(type(data.X_train), type(data.y_train))
 
 ## Create model
-model = MlpRegressor(hidden_layers=(30,), act_names="Tanh", dropout_rates=None, act_output=None,
-                    epochs=10, batch_size=16, optim="Adam", optim_paras=None,
+model = AnfisRegressor(num_rules=10, mf_class="Linear", act_output=None, vanishing_strategy="blend",
+                    epochs=100, batch_size=16, optim="Adam", optim_params=None,
                     early_stopping=True, n_patience=10, epsilon=0.001, valid_rate=0.1,
                     seed=42, verbose=True)
 ## Train the model
