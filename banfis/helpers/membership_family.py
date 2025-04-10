@@ -270,3 +270,36 @@ class ZShapedMembership(BaseMembership):
 
         return left + middle1 * term1 + middle2 * term2
 
+
+class SShapedMembership(BaseMembership):
+    """
+    S-shaped membership function implementation.
+
+    This membership function is characterized by a smooth transition from 0 to 1,
+    forming an S-like shape.
+
+    Args:
+        input_dim (int): Number of input features.
+
+    Attributes:
+        a (nn.Parameter): Start of the transition.
+        b (nn.Parameter): End of the transition.
+    """
+
+    def __init__(self, input_dim):
+        super().__init__()
+        self.a = nn.Parameter(torch.rand(input_dim))
+        self.b = nn.Parameter(torch.rand(input_dim))
+
+    def forward(self, x):
+        mid = (self.a + self.b) / 2
+        left = (x <= self.a).float()
+        middle1 = ((x > self.a) & (x <= mid)).float()
+        middle2 = ((x > mid) & (x <= self.b)).float()
+        right = (x > self.b).float()
+
+        term1 = 2 * ((x - self.a) / (self.b - self.a + 1e-6))**2
+        term2 = 1 - 2 * ((self.b - x) / (self.b - self.a + 1e-6))**2
+
+        return left * 0 + middle1 * term1 + middle2 * term2 + right
+
