@@ -115,3 +115,41 @@ class TrapezoidalMembership(BaseMembership):
                          torch.where(x < d, ramp_down, 0.0))))
         return membership
 
+
+class TriangularMembership(BaseMembership):
+    """Triangular membership function implementation."""
+
+    def __init__(self, input_dim: int) -> None:
+        """
+        Initialize the Triangular membership function.
+
+        Args:
+            input_dim (int): Number of input features.
+        """
+        super(TriangularMembership, self).__init__()
+        # Khởi tạo centers trong khoảng [0, 1] vì data của chúng ta cũng nằm trong khoảng này
+        self.centers = nn.Parameter(torch.rand(input_dim))
+        # Khởi tạo spread với giá trị dương và không quá nhỏ
+        self.left_spread = nn.Parameter(torch.ones(input_dim) * 0.5)
+        self.right_spread = nn.Parameter(torch.ones(input_dim) * 0.5)
+
+    def forward(self, X: torch.Tensor) -> torch.Tensor:
+        """
+        Calculate Triangular membership values.
+
+        Args:
+            X (torch.Tensor): Input tensor of shape (batch_size, input_dim).
+
+        Returns:
+            torch.Tensor: Tensor of membership values of shape (batch_size,).
+        """
+        left_spread = torch.abs(self.left_spread) + 1e-4
+        right_spread = torch.abs(self.right_spread) + 1e-4
+
+        # Tính toán membership values
+        left_side = (X - (self.centers - left_spread)) / left_spread
+        right_side = ((self.centers + right_spread) - X) / right_spread
+
+        # Sử dụng torch.relu thay vì torch.maximum để đảm bảo gradient flow tốt hơn
+        return torch.minimum(torch.relu(left_side), torch.relu(right_side))
+
