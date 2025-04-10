@@ -153,3 +153,30 @@ class TriangularMembership(BaseMembership):
         # Sử dụng torch.relu thay vì torch.maximum để đảm bảo gradient flow tốt hơn
         return torch.minimum(torch.relu(left_side), torch.relu(right_side))
 
+
+class SigmoidMembership(BaseMembership):
+    """Sigmoid membership function implementation."""
+
+    def __init__(self, input_dim: int) -> None:
+        """
+        Initialize the Sigmoid membership function.
+
+        Args:
+            input_dim (int): Number of input features.
+        """
+        super(SigmoidMembership, self).__init__()
+        self.a = nn.Parameter(torch.randn(input_dim))  # Slope
+        self.b = nn.Parameter(torch.randn(input_dim))  # Offset
+
+    def forward(self, X: torch.Tensor) -> torch.Tensor:
+        """
+        Calculate Sigmoid membership values.
+
+        Args:
+            X (torch.Tensor): Input tensor of shape (batch_size, input_dim).
+
+        Returns:
+            torch.Tensor: Tensor of membership values of shape (batch_size,).
+        """
+        return 1 / (1 + torch.exp(-self.a * (X - self.b)))
+
