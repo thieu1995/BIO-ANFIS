@@ -289,3 +289,293 @@ class CustomANFIS(nn.Module):
         """
         return sum(param.numel() for param in self.parameters() if param.requires_grad)
 
+
+class BaseAnfis(BaseEstimator):
+    """
+    Base class for Adaptive Neuro-Fuzzy Inference System (ANFIS) models.
+
+    This class provides a foundation for implementing ANFIS models with support for
+    training, evaluation, and saving/loading models. It includes methods for handling
+    metrics, setting random seeds, and managing training loss history.
+
+    Attributes:
+        SUPPORTED_CLS_METRICS (list): List of supported classification metrics.
+        SUPPORTED_REG_METRICS (list): List of supported regression metrics.
+        num_rules (int): Number of fuzzy rules.
+        mf_class (str): Membership function class.
+        task (str): Task type, either "classification" or "regression".
+        act_output (str or None): Activation function for the output layer.
+        vanishing_strategy (str or None): Strategy for calculating rule strengths.
+        seed (int or None): Random seed for reproducibility.
+        network (nn.Module or None): Neural network representing the ANFIS model.
+        loss_train (list or None): Training loss history.
+
+    Methods:
+        set_seed(seed): Sets the random seed for reproducibility.
+        fit(X, y): Trains the ANFIS model on the given dataset.
+        predict(X): Generates predictions for input data.
+        score(X, y): Evaluates the model on the given dataset.
+        evaluate(y_true, y_pred, list_metrics): Evaluates the model using specified metrics.
+        save_training_loss(save_path, filename): Saves training loss history to a CSV file.
+        save_evaluation_metrics(y_true, y_pred, list_metrics, save_path, filename): Saves evaluation metrics to a CSV file.
+        save_y_predicted(X, y_true, save_path, filename): Saves true and predicted values to a CSV file.
+        save_model(save_path, filename): Saves the trained model to a pickle file.
+        load_model(load_path, filename): Loads a model from a pickle file.
+    """
+
+    SUPPORTED_CLS_METRICS = get_all_classification_metrics()
+    SUPPORTED_REG_METRICS = get_all_regression_metrics()
+
+    def __init__(self, num_rules, mf_class, task="classification", act_output=None, vanishing_strategy=None, seed=None):
+        self.num_rules = num_rules
+        self.mf_class = mf_class
+        self.task = task
+        self.act_output = act_output
+        self.vanishing_strategy = vanishing_strategy
+        self.seed = seed
+        self.network = None
+        self.loss_train = None
+
+    @staticmethod
+    def _check_method(method=None, list_supported_methods=None):
+        """
+        Validates if the given method is supported.
+
+        Parameters
+        ----------
+        method : str
+            The method to be checked.
+        list_supported_methods : list of str
+            A list of supported method names.
+
+        Returns
+        -------
+        bool
+            True if the method is supported; otherwise, raises ValueError.
+        """
+        if type(method) is str:
+            return validator.check_str("method", method, list_supported_methods)
+        else:
+            raise ValueError(f"method should be a string and belong to {list_supported_methods}")
+
+    def set_seed(self, seed):
+        """
+        Set the random seed for the model to ensure reproducibility.
+
+        Parameters:
+            seed (int, None): The seed value to use for random number generators within the model.
+
+        Notes:
+            - This method stores the seed value in the `self.seed` attribute.
+            - Setting a seed helps achieve reproducible results, especially in
+              training neural networks where randomness affects initialization and
+              other stochastic operations.
+        """
+        self.seed = seed
+
+    def fit(self, X, y):
+        """
+        Train the ANFIS model on the given dataset.
+
+        Parameters
+        ----------
+        X : array-like or torch.Tensor
+            Training features.
+        y : array-like or torch.Tensor
+            Target values.
+        """
+        pass
+
+    def predict(self, X):
+        """
+        Generate predictions for input data using the trained model.
+
+        Parameters
+        ----------
+        X : array-like or torch.Tensor
+            Input features for prediction.
+
+        Returns
+        -------
+        array-like or torch.Tensor
+            Model predictions for each input sample.
+        """
+        pass
+
+    def score(self, X, y):
+        """
+        Evaluate the model on the given dataset.
+
+        Parameters
+        ----------
+        X : array-like or torch.Tensor
+            Evaluation features.
+        y : array-like or torch.Tensor
+            True values.
+
+        Returns
+        -------
+        float
+            The accuracy or evaluation score.
+        """
+        pass
+
+    def __evaluate_reg(self, y_true, y_pred, list_metrics=("MSE", "MAE")):
+        """
+        Evaluate regression performance metrics.
+
+        Parameters
+        ----------
+        y_true : array-like
+            True target values.
+        y_pred : array-like
+            Predicted values.
+        list_metrics : tuple of str, list of str
+            List of metrics for evaluation (e.g., "MSE" and "MAE").
+
+        Returns
+        -------
+        dict
+            Dictionary of calculated metric values.
+        """
+        rm = RegressionMetric(y_true=y_true, y_pred=y_pred)
+        return rm.get_metrics_by_list_names(list_metrics)
+
+    def __evaluate_cls(self, y_true, y_pred, list_metrics=("AS", "RS")):
+        """
+        Evaluate classification performance metrics.
+
+        Parameters
+        ----------
+        y_true : array-like
+            True target values.
+        y_pred : array-like
+            Predicted labels.
+        list_metrics : tuple of str, list of str
+            List of metrics for evaluation (e.g., "AS" and "RS").
+
+        Returns
+        -------
+        dict
+            Dictionary of calculated metric values.
+        """
+        cm = ClassificationMetric(y_true, y_pred)
+        return cm.get_metrics_by_list_names(list_metrics)
+
+    def evaluate(self, y_true, y_pred, list_metrics=None):
+        """
+        Evaluate the model using specified metrics.
+
+        Parameters
+        ----------
+        y_true : array-like
+            True target values.
+        y_pred : array-like
+            Model's predicted values.
+        list_metrics : list of str, optional
+            Names of metrics for evaluation (e.g., "MSE", "MAE").
+
+        Returns
+        -------
+        dict
+            Evaluation metrics and their values.
+        """
+        pass
+
+    def save_training_loss(self, save_path="history", filename="loss.csv"):
+        """
+        Save training loss history to a CSV file.
+
+        Parameters
+        ----------
+        save_path : str, optional
+            Path to save the file (default: "history").
+        filename : str, optional
+            Filename for saving loss history (default: "loss.csv").
+        """
+        Path(save_path).mkdir(parents=True, exist_ok=True)
+        if self.loss_train is None:
+            print(f"{self.__class__.__name__} model doesn't have training loss!")
+        else:
+            data = {"epoch": list(range(1, len(self.loss_train) + 1)), "loss": self.loss_train}
+            pd.DataFrame(data).to_csv(f"{save_path}/{filename}", index=False)
+
+    def save_evaluation_metrics(self, y_true, y_pred, list_metrics=("RMSE", "MAE"), save_path="history", filename="metrics.csv"):
+        """
+        Save evaluation metrics to a CSV file.
+
+        Parameters
+        ----------
+        y_true : array-like
+            Ground truth values.
+        y_pred : array-like
+            Model predictions.
+        list_metrics : list of str, optional
+            Metrics for evaluation (default: ("RMSE", "MAE")).
+        save_path : str, optional
+            Path to save the file (default: "history").
+        filename : str, optional
+            Filename for saving metrics (default: "metrics.csv").
+        """
+        Path(save_path).mkdir(parents=True, exist_ok=True)
+        results = self.evaluate(y_true, y_pred, list_metrics)
+        df = pd.DataFrame.from_dict(results, orient='index').T
+        df.to_csv(f"{save_path}/{filename}", index=False)
+
+    def save_y_predicted(self, X, y_true, save_path="history", filename="y_predicted.csv"):
+        """
+        Save true and predicted values to a CSV file.
+
+        Parameters
+        ----------
+        X : array-like or torch.Tensor
+            Input features.
+        y_true : array-like
+            True values.
+        save_path : str, optional
+            Path to save the file (default: "history").
+        filename : str, optional
+            Filename for saving predicted values (default: "y_predicted.csv").
+        """
+        Path(save_path).mkdir(parents=True, exist_ok=True)
+        y_pred = self.predict(X)
+        data = {"y_true": np.squeeze(np.asarray(y_true)), "y_pred": np.squeeze(np.asarray(y_pred))}
+        pd.DataFrame(data).to_csv(f"{save_path}/{filename}", index=False)
+
+    def save_model(self, save_path="history", filename="model.pkl"):
+        """
+        Save the trained model to a pickle file.
+
+        Parameters
+        ----------
+        save_path : str, optional
+            Path to save the model (default: "history").
+        filename : str, optional
+            Filename for saving model, with ".pkl" extension (default: "model.pkl").
+        """
+        Path(save_path).mkdir(parents=True, exist_ok=True)
+        if filename[-4:] != ".pkl":
+            filename += ".pkl"
+        pickle.dump(self, open(f"{save_path}/{filename}", 'wb'))
+
+    @staticmethod
+    def load_model(load_path="history", filename="model.pkl") -> EstimatorType:
+        """
+        Load a model from a pickle file.
+
+        Parameters
+        ----------
+        load_path : str, optional
+            Path to load the model from (default: "history").
+        filename : str, optional
+            Filename of the saved model (default: "model.pkl").
+
+        Returns
+        -------
+        BaseAnfis
+            The loaded model.
+        """
+        if filename[-4:] != ".pkl":
+            filename += ".pkl"
+        return pickle.load(open(f"{load_path}/{filename}", 'rb'))
+
