@@ -237,3 +237,36 @@ class GBellMembership(BaseMembership):
     def forward(self, x):
         return 1.0 / (1.0 + torch.abs((x - self.c) / (self.a + 1e-6)) ** (2 * self.b))
 
+
+class ZShapedMembership(BaseMembership):
+    """
+    Z-shaped membership function implementation.
+
+    This membership function is characterized by a smooth transition from 1 to 0,
+    forming a Z-like shape.
+
+    Args:
+        input_dim (int): Number of input features.
+
+    Attributes:
+        a (nn.Parameter): Start of the transition.
+        b (nn.Parameter): End of the transition.
+    """
+
+    def __init__(self, input_dim):
+        super().__init__()
+        self.a = nn.Parameter(torch.rand(input_dim))  # Start
+        self.b = nn.Parameter(torch.rand(input_dim))  # End
+
+    def forward(self, x):
+        mid = (self.a + self.b) / 2
+        left = (x <= self.a).float()
+        middle1 = ((x > self.a) & (x <= mid)).float()
+        middle2 = ((x > mid) & (x <= self.b)).float()
+        right = (x > self.b).float()
+
+        term1 = 1 - 2 * ((x - self.a) / (self.b - self.a + 1e-6))**2
+        term2 = 2 * ((self.b - x) / (self.b - self.a + 1e-6))**2
+
+        return left + middle1 * term1 + middle2 * term2
+
