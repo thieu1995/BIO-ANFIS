@@ -796,3 +796,322 @@ class BaseStandardAnfis(BaseAnfis):
             # Return to training mode for next epoch
             self.network.train()
 
+
+class BaseBioAnfis(BaseAnfis):
+    """
+    Base class for Metaheuristic-based ANFIS models that inherit from BaseAnfis.
+
+    This class provides functionality for integrating metaheuristic optimization algorithms
+    into the training process of Adaptive Neuro-Fuzzy Inference System (ANFIS) models. It supports
+    various optimization techniques, objective functions, and evaluation metrics.
+
+    Attributes
+    ----------
+    SUPPORTED_OPTIMIZERS : list
+        List of supported optimizer names from the Mealpy library.
+    SUPPORTED_CLS_OBJECTIVES : dict
+        Supported objectives for classification tasks.
+    SUPPORTED_REG_OBJECTIVES : dict
+        Supported objectives for regression tasks.
+    SUPPORTED_CLS_METRICS : dict
+        Supported metrics for classification evaluation.
+    SUPPORTED_REG_METRICS : dict
+        Supported metrics for regression evaluation.
+    size_input : int or None
+        Number of input features (set during training).
+    size_output : int or None
+        Number of output features (set during training).
+    network : nn.Module or None
+        The ANFIS model instance.
+    optimizer : Optimizer or None
+        The metaheuristic optimizer used for training.
+    obj_name : str or None
+        The name of the objective function used for optimization.
+    metric_class : permetrics.Metric or None
+        Metric class instance for evaluating the objective function.
+    data : tuple or None
+        Training data consisting of features and labels.
+
+    Parameters
+    ----------
+    num_rules : int
+        Number of fuzzy rules.
+    mf_class : str
+        Membership function class.
+    act_output : str or None
+        Activation function for the output layer.
+    vanishing_strategy : str or None
+        Strategy for calculating rule strengths.
+    optim : str, optional
+        Name of the optimization algorithm to be used (default is "BaseGA").
+    optim_params : dict, optional
+        Parameters for the optimizer (default is None).
+    obj_name : str, optional
+        Objective name for the model evaluation (default is None).
+    seed : int, optional
+        Random seed for reproducibility (default is 42).
+    verbose : bool, optional
+        Whether to print verbose output during training (default is True).
+
+    Methods
+    -------
+    __init__(num_rules, mf_class, act_output, vanishing_strategy, optim, optim_params, obj_name, seed, verbose):
+        Initializes the model parameters and configuration.
+
+    set_optim_and_paras(optim, optim_params):
+        Sets the optimizer and its parameters.
+
+    _set_optimizer(optim, optim_params):
+        Validates and initializes the optimizer based on the provided name or instance.
+
+    get_name():
+        Generates a descriptive name for the ANFIS model based on the optimizer.
+
+    build_model():
+        Builds the model architecture and sets the optimizer and loss function.
+
+    _set_lb_ub(lb, ub, n_dims):
+        Validates and sets the lower and upper bounds for optimization.
+
+    objective_function(solution):
+        Evaluates the fitness function for the given solution.
+
+    _fit(data, lb, ub, mode, n_workers, termination, save_population, **kwargs):
+        Fits the model to the provided data using the specified optimizer.
+    """
+
+    SUPPORTED_OPTIMIZERS = list(get_all_optimizers().keys())
+    SUPPORTED_CLS_OBJECTIVES = get_all_classification_metrics()
+    SUPPORTED_REG_OBJECTIVES = get_all_regression_metrics()
+
+    def __init__(self, num_rules=10, mf_class="Gaussian", act_output=None, vanishing_strategy=None,
+                 optim="BaseGA", optim_params=None, obj_name=None, seed=42, verbose=True):
+        """
+        Initializes the BaseBioAnfis class.
+        """
+        super().__init__(num_rules, mf_class, "classification",
+                         act_output=act_output, vanishing_strategy=vanishing_strategy, seed=seed)
+        self.optim = optim
+        self.optim_params = optim_params
+        self.verbose = verbose
+
+        # Initialize model parameters
+        self.size_input = None
+        self.size_output = None
+        self.network = None
+        self.optimizer = None
+        self.obj_name = obj_name
+        self.metric_class = None
+
+    def set_optim_and_paras(self, optim=None, optim_params=None):
+        """
+        Sets the `optim` and `optim_params` parameters for this class.
+
+        Parameters
+        ----------
+        optim : str
+            The optimizer name to be set.
+        optim_params : dict
+            Parameters to configure the optimizer.
+        """
+        self.optim = optim
+        self.optim_params = optim_params
+
+    def _set_optimizer(self, optim=None, optim_params=None):
+        """
+        Validates the real optimizer based on the provided `optim` and `optim_pras`.
+
+        Parameters
+        ----------
+        optim : str or Optimizer
+            The optimizer name or instance to be set.
+        optim_params : dict, optional
+            Parameters to configure the optimizer.
+
+        Returns
+        -------
+        Optimizer
+            An instance of the selected optimizer.
+
+        Raises
+        ------
+        TypeError
+            If the provided optimizer is neither a string nor an instance of Optimizer.
+        """
+        if isinstance(optim, str):
+            opt_class = get_optimizer_by_name(optim)
+            if isinstance(optim_params, dict):
+                return opt_class(**optim_params)
+            else:
+                return opt_class(epoch=300, pop_size=30)
+        elif isinstance(optim, Optimizer):
+            if isinstance(optim_params, dict):
+                if "name" in optim_params:  # Check if key exists and remove it
+                    optim.name = optim_params.pop("name")
+                optim.set_parameters(optim_params)
+            return optim
+        else:
+            raise TypeError(f"optimizer needs to set as a string and supported by Mealpy library.")
+
+    def get_name(self):
+        """
+        Generate a descriptive name for the ANFIS model based on the optimizer.
+
+        Returns:
+            str: A string representing the name of the model, including details
+            about the optimizer used. If `self.optim` is a string, the name
+            will be formatted as "<self.optim_params>-ANFIS". Otherwise, it will
+            return "<self.optimizer.name>-ANFIS", assuming `self.optimizer` is an
+            object with a `name` attribute.
+
+        Notes:
+            - This method relies on the presence of `self.optim`, `self.optim_params`,
+              and `self.optimizer.name` attributes within the model instance.
+            - It is intended to provide a consistent naming scheme for model instances
+              based on the optimizer configuration.
+        """
+        return f"{self.optimizer.name}-ANFIS-{self.optim_params}"
+
+    def build_model(self):
+        """
+        Builds the model architecture and sets the optimizer and loss function based on the task.
+
+        Raises
+        ------
+        ValueError
+            If the task is not recognized.
+        """
+
+        # input_dim=None, num_rules=None, output_dim=None, mf_class=None,
+        #                  task="classification", act_output=None, seed=None
+
+        self.network = CustomANFIS(self.size_input, self.num_rules, self.size_output,
+                                   self.mf_class, self.task, self.act_output, self.seed)
+
+        self.optimizer = self._set_optimizer(self.optim, self.optim_params)
+
+    def _set_lb_ub(self, lb=None, ub=None, n_dims=None):
+        """
+        Validates and sets the lower and upper bounds for optimization.
+
+        Parameters
+        ----------
+        lb : list, tuple, np.ndarray, int, or float, optional
+            The lower bounds.
+        ub : list, tuple, np.ndarray, int, or float, optional
+            The upper bounds.
+        n_dims : int
+            The number of dimensions.
+
+        Returns
+        -------
+        tuple
+            A tuple containing validated lower and upper bounds.
+
+        Raises
+        ------
+        ValueError
+            If the bounds are not valid.
+        """
+        if isinstance(lb, (list, tuple, np.ndarray)) and isinstance(ub, (list, tuple, np.ndarray)):
+            if len(lb) == len(ub):
+                if len(lb) == 1:
+                    lb = np.array(lb * n_dims, dtype=float)
+                    ub = np.array(ub * n_dims, dtype=float)
+                    return lb, ub
+                elif len(lb) == n_dims:
+                    return lb, ub
+                else:
+                    raise ValueError(f"Invalid lb and ub. Their length should be equal to 1 or {n_dims}.")
+            else:
+                raise ValueError(f"Invalid lb and ub. They should have the same length.")
+        elif isinstance(lb, (int, float)) and isinstance(ub, (int, float)):
+            lb = (float(lb),) * n_dims
+            ub = (float(ub),) * n_dims
+            return lb, ub
+        else:
+            raise ValueError(f"Invalid lb and ub. They should be a number of list/tuple/np.ndarray with size equal to {n_dims}")
+
+    def objective_function(self, solution=None):
+        """
+        Evaluates the fitness function for classification metrics based on the provided solution.
+
+        Parameters
+        ----------
+        solution : np.ndarray, default=None
+            The proposed solution to evaluate.
+
+        Returns
+        -------
+        result : float
+            The fitness value, representing the loss for the current solution.
+        """
+        X_train, y_train = self.data
+        self.network.set_weights(solution)
+        y_pred = self.network(X_train).detach().cpu().numpy()
+        loss_train = self.metric_class(y_train, y_pred).get_metric_by_name(self.obj_name)[self.obj_name]
+        return np.mean([loss_train])
+
+    def _fit(self, data, lb=(-1.0,), ub=(1.0,), mode='single', n_workers=None,
+             termination=None, save_population=False, **kwargs):
+        """
+        Fits the model to the provided data using the specified optimizer.
+
+        Parameters
+        ----------
+        data : tuple
+            Training data consisting of features and labels.
+        lb : tuple, optional
+            Lower bounds for the optimization (default is (-1.0,)).
+        ub : tuple, optional
+            Upper bounds for the optimization (default is (1.0,)).
+        mode : str, optional
+            Mode for optimization (default is 'single').
+        n_workers : int, optional
+            Number of workers for parallel processing (default is None).
+        termination : any, optional
+            Termination criteria for optimization (default is None).
+        save_population : bool, optional
+            Whether to save the population during optimization (default is False).
+        **kwargs : additional parameters
+            Additional parameters for the fitting process.
+
+        Returns
+        -------
+        self : BaseBioAnfis
+            The instance of the fitted model.
+
+        Raises
+        ------
+        ValueError
+            If the objective name is None or not supported.
+        """
+        # Get data
+        n_dims = self.network.get_weights_size()
+        lb, ub = self._set_lb_ub(lb, ub, n_dims)
+        self.data = data
+
+        log_to = "console" if self.verbose else "None"
+        if self.obj_name is None:
+            raise ValueError("obj_name can't be None")
+        else:
+            if self.obj_name in self.SUPPORTED_REG_OBJECTIVES.keys():
+                minmax = self.SUPPORTED_REG_OBJECTIVES[self.obj_name]
+            elif self.obj_name in self.SUPPORTED_CLS_OBJECTIVES.keys():
+                minmax = self.SUPPORTED_CLS_OBJECTIVES[self.obj_name]
+            else:
+                raise ValueError("obj_name is not supported. Please check the library: permetrics to see the supported objective function.")
+        problem = {
+            "obj_func": self.objective_function,
+            "bounds": FloatVar(lb=lb, ub=ub),
+            "minmax": minmax,
+            "log_to": log_to,
+            "save_population": save_population,
+        }
+        if termination is None:
+            self.optimizer.solve(problem, mode=mode, n_workers=n_workers, seed=self.seed)
+        else:
+            self.optimizer.solve(problem, mode=mode, n_workers=n_workers, termination=termination, seed=self.seed)
+        self.network.set_weights(self.optimizer.g_best.solution)
+        self.loss_train = np.array(self.optimizer.history.list_global_best_fit)
+        return self
