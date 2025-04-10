@@ -212,3 +212,28 @@ class PiShapedMembership(BaseMembership):
         falling_edge = torch.clamp(ramp_down, min=0.0, max=1.0)
         return torch.min(rising_edge, falling_edge)
 
+
+class GBellMembership(BaseMembership):
+    """
+    Generalized Bell-shaped membership function implementation.
+
+    This membership function is defined by a smooth, symmetric bell curve.
+
+    Args:
+        input_dim (int): Number of input features.
+
+    Attributes:
+        a (nn.Parameter): Width of the bell curve.
+        b (nn.Parameter): Slope of the bell curve.
+        c (nn.Parameter): Center of the bell curve.
+    """
+
+    def __init__(self, input_dim):
+        super().__init__()
+        self.a = nn.Parameter(torch.rand(input_dim))  # Width
+        self.b = nn.Parameter(torch.ones(input_dim))  # Slope
+        self.c = nn.Parameter(torch.rand(input_dim))  # Center
+
+    def forward(self, x):
+        return 1.0 / (1.0 + torch.abs((x - self.c) / (self.a + 1e-6)) ** (2 * self.b))
+
