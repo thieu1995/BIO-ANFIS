@@ -1,4 +1,17 @@
 
+    SUPPORT_MEMBERSHIP_CLASSES = {
+        "Gaussian": "GaussianMembership",
+        "Trapezoidal": "TrapezoidalMembership",
+        "Triangular": "TriangularMembership",
+        "Sigmoid": "SigmoidMembership",
+        "Bell": "BellMembership",
+        "PiShaped": "PiShapedMembership",
+        "SShaped": "SShapedMembership",
+        "GBell": "GBellMembership",
+        "ZShaped": "ZShapedMembership",
+        "Linear": "LinearMembership",
+    }
+
 # Version 1.1.0
 
 + Add `MhaMlpRegressor` and `MhaMlpClassifier` classes

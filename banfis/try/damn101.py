@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Created by "Thieu" at 19:27, 10/04/2025 ----------%                                                                               
+# Created by "Thieu" at 07:53, 11/04/2025 ----------%                                                                               
 #       Email: nguyenthieu2102@gmail.com            %                                                    
 #       Github: https://github.com/thieu1995        %                         
 # --------------------------------------------------%
@@ -43,43 +43,52 @@ class ANFIS(nn.Module):
         self.num_rules = num_rules
         self.output_dim = output_dim
 
-        # Initialize membership functions
         self.memberships = nn.ModuleList([membership_class(input_dim) for _ in range(num_rules)])
+        # Đừng dùng nn.Parameter nữa – để ta cập nhật bằng tay bằng LSE
+        self.register_buffer("coeffs", torch.zeros(num_rules, input_dim + 1, output_dim))
 
-        # Initialize linear coefficients for each rule
-        # self.coeffs = nn.Parameter(torch.zeros(num_rules, input_dim + 1))  # Includes bias term (num_rules, input_dim + 1)
-        self.coeffs = nn.Parameter(torch.zeros(num_rules, input_dim + 1, output_dim))  # (num_rules, input_dim+1, output_dim)
-
-    def forward(self, X):
-        # Calculate membership values for all rules (N x num_rules x input_dim)
+    def compute_membership_strengths(self, X):
         memberships = torch.stack([membership(X) for membership in self.memberships], dim=1)
-
-        # Fix 1: Dùng log-product thay vì product để tránh underflow
-        # log_strengths = torch.sum(torch.log(memberships + 1e-6), dim=2)  # log-product
-        # strengths = torch.exp(log_strengths)
-
-        # Fix 2: Dùng mean thay vì product (đơn giản hơn, dễ hội tụ)
-        strengths = torch.mean(memberships, dim=2)
-
-        # Original
-        # Calculate rule strengths by taking the product along the input dimension (dim=2)
-        # strengths = torch.prod(memberships, dim=2)  # Resulting shape: (N, num_rules)
-
-        # Normalize strengths (N x num_rules)
+        strengths = torch.prod(memberships, dim=2)
         strengths_sum = torch.sum(strengths, dim=1, keepdim=True)
         normalized_strengths = strengths / (strengths_sum + 1e-8)
+        return normalized_strengths
 
-        # # Predictions (weighted sum of outputs)
-        # weighted_inputs = torch.matmul(X, self.coeffs[:, :-1].t()) + self.coeffs[:, -1]  # (N, num_rules)
-        # predictions = torch.sum(normalized_strengths * weighted_inputs, dim=1)  # (N,)
-        # return predictions
+    def compute_rule_outputs(self, X):
+        N = X.shape[0]
+        X_aug = torch.cat([X, torch.ones(N, 1)], dim=1)  # (N, input_dim + 1)
+        # (N, input_dim+1) x (num_rules, input_dim+1, output_dim) → (N, num_rules, output_dim)
+        rule_outputs = torch.einsum("ni,rij->nrj", X_aug, self.coeffs)
+        return rule_outputs
 
-        # Prepare input for consequent layer
-        # (N, num_rules, input_dim)
-        weighted_inputs = torch.einsum("ni,rij->nrj", X, self.coeffs[:, :-1, :]) + self.coeffs[:, -1,:]  # (N, num_rules, output_dim)
-        # Multiply with normalized strengths (broadcasting): (N, num_rules, 1) * (N, num_rules, output_dim)
-        output = torch.sum(normalized_strengths.unsqueeze(-1) * weighted_inputs, dim=1)  # (N, output_dim)
-        return output  # logits, to be passed to CrossEntropyLoss
+    def forward(self, X):
+        strengths = self.compute_membership_strengths(X)  # (N, num_rules)
+        rule_outputs = self.compute_rule_outputs(X)       # (N, num_rules, output_dim)
+        output = torch.sum(strengths.unsqueeze(-1) * rule_outputs, dim=1)  # (N, output_dim)
+        return output
+
+    def update_consequents_with_LSE(self, X, y_onehot):
+        """
+        Least Squares Estimation to update consequent coefficients.
+        :param X: Input tensor (N, input_dim)
+        :param y_onehot: One-hot labels (N, output_dim)
+        """
+        with torch.no_grad():
+            N = X.shape[0]
+            X_aug = torch.cat([X, torch.ones(N, 1)], dim=1)  # (N, input_dim + 1)
+            strengths = self.compute_membership_strengths(X)  # (N, num_rules)
+
+            design_matrices = strengths.unsqueeze(-1) * X_aug.unsqueeze(1)
+            Phi = design_matrices.reshape(N, -1)
+
+            try:
+                w_opt = torch.linalg.lstsq(Phi, y_onehot).solution
+            except RuntimeError:
+                print("LSE failed, skipping update")
+                return
+
+            # Reshape to (num_rules, input_dim+1, output_dim)
+            self.coeffs.copy_(w_opt.reshape(self.num_rules, self.input_dim + 1, self.output_dim))
 
 
 # Load and preprocess data
@@ -99,33 +108,22 @@ y_test = torch.tensor(y_test, dtype=torch.long)
 
 # Initialize model
 anfis = ANFIS(input_dim=64, num_rules=20, output_dim=10, membership_class=GaussianMembership)
-optimizer = optim.Adam(anfis.parameters(), lr=0.01)
+
+# Chỉ tối ưu membership parameters
+optimizer = optim.Adam([p for name, p in anfis.named_parameters() if "coeffs" not in name], lr=0.01)
 loss_fn = nn.CrossEntropyLoss()
 
-# Training loop
+# One-hot encode y_train để dùng cho LSE
+y_train_onehot = torch.nn.functional.one_hot(y_train, num_classes=10).float()
+
 for epoch in range(500):
+    # Step 1: cập nhật hậu đề bằng LSE
+    anfis.update_consequents_with_LSE(X_train, y_train_onehot)
+
+    # Step 2: dùng gradient descent cho các membership params
     pred = anfis(X_train)
     loss = loss_fn(pred, y_train)
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
     print(f"Epoch {epoch}: Loss = {loss.item()}")
-
-
-# Accuracy
-with torch.no_grad():
-    pred_test = anfis(X_test)
-    predicted_classes = torch.argmax(pred_test, dim=1)
-    acc = (predicted_classes == y_test).float().mean()
-    print("Test Accuracy:", acc.item())
-
-
-    print("Model Parameters:")
-    for name, param in anfis.named_parameters():
-        print(f"Name: {name}")
-        print(f"Shape: {param.shape}")
-        print(f"Values:\n{param.data}\n")
-
-    total_params = sum(p.numel() for p in anfis.parameters())
-    print(f"Total number of parameters: {total_params}")
-
