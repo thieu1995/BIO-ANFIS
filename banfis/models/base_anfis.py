@@ -171,7 +171,7 @@ class CustomANFIS(nn.Module):
             else:  # regression
                 self.act_output_ = nn.Identity()
         else:
-            self.act_output_ = self._get_act(act_output)()
+            self.act_output_ = self._get_act(act_output)
 
         # Initialize membership functions
         self.memberships = nn.ModuleList([self.mf_class_(self.input_dim) for _ in range(self.num_rules)])
