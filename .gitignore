@@ -1,10 +1,4 @@
 
-tests/
-.github/
-.readthedocs.yaml
-docs/
-.flake8
-
 examples/wrapper/history/
 # Pycharm
 .idea/
