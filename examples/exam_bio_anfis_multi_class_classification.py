@@ -24,8 +24,8 @@ data.y_train, scaler_y = data.encode_label(data.y_train)
 data.y_test = scaler_y.transform(data.y_test)
 
 ## Create model
-model = BioAnfisClassifier(num_rules=10, mf_class="Gaussian", act_output=None,
-                           vanishing_strategy="prod", reg_lambda=None,
+model = BioAnfisClassifier(num_rules=10, mf_class="Gaussian",
+                           vanishing_strategy="prod", act_output=None, reg_lambda=None,
                            optim="BaseGA", optim_params={"name": "WOA", "epoch": 100, "pop_size": 20},
                            obj_name="F1S", seed=42, verbose=True)
 ## Train the model
