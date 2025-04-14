@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Created by "Thieu" at 22:09, 10/04/2025 ----------%                                                                               
+# Created by "Thieu" at 07:14, 14/04/2025 ----------%                                                                               
 #       Email: nguyenthieu2102@gmail.com            %                                                    
 #       Github: https://github.com/thieu1995        %                         
 # --------------------------------------------------%
@@ -10,12 +10,12 @@ from torch.utils.data import TensorDataset, DataLoader
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, r2_score
 from sklearn.base import ClassifierMixin, RegressorMixin
-from banfis.models.base_anfis import BaseGdAnfis
+from banfis.models.base_anfis import BaseClassicAnfis
 
 
-class GdAnfisClassifier(BaseGdAnfis, ClassifierMixin):
+class AnfisClassifier(BaseClassicAnfis, ClassifierMixin):
     """
-    Adaptive Neuro-Fuzzy Inference System (ANFIS) Classifier that inherits from BaseGdAnfis and ClassifierMixin.
+    Adaptive Neuro-Fuzzy Inference System (ANFIS) Classifier that inherits from BaseClassicAnfis and ClassifierMixin.
 
     This class integrates ANFIS with gradient-based optimization techniques for classification tasks, supporting both
     binary and multi-class classification.
@@ -275,7 +275,7 @@ class GdAnfisClassifier(BaseGdAnfis, ClassifierMixin):
         return self._BaseAnfis__evaluate_cls(y_true, y_pred, list_metrics)
 
 
-class GdAnfisRegressor(BaseGdAnfis, RegressorMixin):
+class AnfisRegressor(BaseClassicAnfis, RegressorMixin):
     """
     Adaptive Neuro-Fuzzy Inference System (ANFIS) Regressor for predicting continuous values.
 
@@ -413,7 +413,7 @@ class GdAnfisRegressor(BaseGdAnfis, RegressorMixin):
 
         Returns
         -------
-        self : GdAnfisRegressor
+        self : AnfisRegressor
             Returns the instance of the fitted model.
         """
         # Check and prepare the input parameters

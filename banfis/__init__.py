@@ -4,14 +4,10 @@
 #       Github: https://github.com/thieu1995        %                         
 # --------------------------------------------------%
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 
 from banfis.helpers.membership_family import *
 from banfis.helpers.preprocessor import Data, DataTransformer
-from banfis.models.gradient_anfis import AnfisClassifier, AnfisRegressor
+from banfis.models.classic_anfis import AnfisClassifier, AnfisRegressor
+from banfis.models.gd_anfis import GdAnfisClassifier, GdAnfisRegressor
 from banfis.models.bio_anfis import BioAnfisClassifier, BioAnfisRegressor
-
-from banfis.core.gradient_mlp import MlpClassifier, MlpRegressor
-from banfis.core.metaheuristic_mlp import MhaMlpClassifier, MhaMlpRegressor
-from banfis.core.comparator import MhaMlpComparator
-from banfis.core.tuner import MhaMlpTuner

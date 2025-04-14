@@ -67,12 +67,12 @@ class BioAnfisClassifier(BaseBioAnfis, ClassifierMixin):
         Returns the list of performance metrics on the given test data and labels.
     """
 
-    def __init__(self, num_rules=10, mf_class="Gaussian", act_output=None, vanishing_strategy=None,
+    def __init__(self, num_rules=10, mf_class="Gaussian", act_output=None, vanishing_strategy=None, reg_lambda=None,
                  optim="BaseGA", optim_params=None, obj_name="F1S", seed=42, verbose=True):
         """
         Initializes the BioAnfisClassifier with specified parameters.
         """
-        super().__init__(num_rules, mf_class, act_output, vanishing_strategy,
+        super().__init__(num_rules, mf_class, act_output, vanishing_strategy, reg_lambda,
                          optim, optim_params, obj_name, seed, verbose)
         self.classes_ = None  # Initialize classes to None
         self.metric_class = ClassificationMetric  # Set the metric class for evaluation
@@ -123,6 +123,7 @@ class BioAnfisClassifier(BaseBioAnfis, ClassifierMixin):
 
         ## Process data
         X_tensor = torch.tensor(X, dtype=torch.float32)  # Convert input data to tensor
+        y = torch.tensor(y, dtype=torch.float32)  # Convert target data to tensor
 
         ## Build model
         self.build_model()  # Build the model architecture
@@ -286,12 +287,12 @@ class BioAnfisRegressor(BaseBioAnfis, RegressorMixin):
         Returns the list of performance metrics on the given test data and labels.
     """
 
-    def __init__(self, num_rules=10, mf_class="Gaussian", act_output=None, vanishing_strategy=None,
+    def __init__(self, num_rules=10, mf_class="Gaussian", act_output=None, vanishing_strategy=None, reg_lambda=None,
                  optim="BaseGA", optim_params=None, obj_name="MSE", seed=42, verbose=True):
         """
         Initializes the BioAnfisRegressor with specified parameters.
         """
-        super().__init__(num_rules, mf_class, act_output, vanishing_strategy,
+        super().__init__(num_rules, mf_class, act_output, vanishing_strategy, reg_lambda,
                          optim, optim_params, obj_name, seed, verbose)
         self.metric_class = RegressionMetric  # Set the metric class for evaluation
 
@@ -338,6 +339,7 @@ class BioAnfisRegressor(BaseBioAnfis, RegressorMixin):
 
         ## Process data
         X_tensor = torch.tensor(X, dtype=torch.float32)  # Convert input data to tensor
+        y = torch.tensor(y, dtype=torch.float32)  # Convert target data to tensor
 
         ## Build model
         self.build_model()  # Build the model architecture

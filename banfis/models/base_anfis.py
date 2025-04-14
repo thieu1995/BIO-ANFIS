@@ -72,35 +72,6 @@ class EarlyStopper:
 
 
 class CustomANFIS(nn.Module):
-    """
-    Custom Adaptive Neuro-Fuzzy Inference System (ANFIS) implementation.
-
-    This class implements a customizable ANFIS model using PyTorch. It supports various membership
-    functions, activation functions, and vanishing strategies for rule strength calculation.
-
-    Attributes:
-        SUPPORTED_ACTIVATIONS (list): List of supported activation functions.
-        SUPPORT_MEMBERSHIP_CLASSES (dict): Dictionary mapping membership function names to their classes.
-        SUPPORTED_VANISHING_STRATEGIES (list): List of supported strategies for vanishing rule strengths.
-
-    Parameters:
-        input_dim (int): Number of input features.
-        num_rules (int): Number of fuzzy rules.
-        output_dim (int): Number of output features.
-        mf_class (str or BaseMembership): Membership function class or its name.
-        task (str): Task type, either "classification", "binary_classification", or "regression".
-        act_output (str or None): Activation function for the output layer.
-        vanishing_strategy (str): Strategy for calculating rule strengths ("prod", "mean", or "blend").
-        seed (int or None): Random seed for reproducibility.
-
-    Methods:
-        __repr__(): Returns a string representation of the model.
-        _get_act(act_name): Retrieves the activation function by name.
-        forward(X): Performs a forward pass through the ANFIS model.
-        set_weights(solution): Sets the model's weights from a given solution vector.
-        get_weights(): Retrieves the model's weights as a flattened array.
-        get_weights_size(): Calculates the total number of trainable parameters in the model.
-    """
 
     SUPPORTED_ACTIVATIONS = [
         "Threshold", "ReLU", "RReLU", "Hardtanh", "ReLU6",
@@ -126,7 +97,8 @@ class CustomANFIS(nn.Module):
     SUPPORTED_VANISHING_STRATEGIES = ["prod", "mean", "blend"]
 
     def __init__(self, input_dim=None, num_rules=None, output_dim=None, mf_class=None,
-                 task="classification", act_output=None, vanishing_strategy=None, seed=None):
+                 task="classification", act_output=None, vanishing_strategy=None, reg_lambda=None,
+                 seed=None, **kwargs):
         """
         Initialize a customizable multi-layer perceptron (ANFIS) model.
         """
@@ -139,14 +111,30 @@ class CustomANFIS(nn.Module):
         self.act_output = act_output
         self.vanishing_strategy = vanishing_strategy
         self.seed = seed
+        if reg_lambda is None:
+            self.reg_lambda = 0.
+        else:
+            self.reg_lambda = reg_lambda
+        self.kwargs = kwargs
 
         if seed is not None:
             torch.manual_seed(seed)
             if torch.cuda.is_available():
                 torch.cuda.manual_seed_all(seed)
 
-        if self.vanishing_strategy is None:
+        if vanishing_strategy is None:
             self.vanishing_strategy = "prod"
+
+        if validator.is_str_in_sequence(vanishing_strategy, self.SUPPORTED_VANISHING_STRATEGIES):
+            self.vanishing_strategy = vanishing_strategy
+            if self.vanishing_strategy == "prod":
+                self._get_strength = self.__get_strength_by_prod
+            elif self.vanishing_strategy == "mean":
+                self._get_strength = self.__get_strength_by_mean
+            else:
+                self._get_strength = self.__get_strength_by_blend
+        else:
+            raise ValueError(f"Unsupported vanishing strategy: {vanishing_strategy}. Supported strategies are: {self.SUPPORTED_VANISHING_STRATEGIES}")
 
         # Ensure hidden_layers is a valid list, tuple, or numpy array
         if mf_class is None:
@@ -209,6 +197,61 @@ class CustomANFIS(nn.Module):
         else:
             return getattr(nn.modules.activation, act_name)()
 
+    def __get_strength_by_mean(self, memberships):
+        """
+        Calculate the strengths of the rules using mean method.
+
+        Parameters:
+            - memberships (torch.Tensor): Membership values for each rule.
+
+        Returns:
+            - torch.Tensor: Strengths of the rules.
+        """
+        # Calculate strengths by taking the mean along the input dimension (dim=2)
+        return torch.mean(memberships, dim=2)
+
+    def __get_strength_by_prod(self, memberships):
+        """
+        Calculate the strengths of the rules using product method.
+
+        Parameters:
+            - memberships (torch.Tensor): Membership values for each rule.
+
+        Returns:
+            - torch.Tensor: Strengths of the rules.
+        """
+        # Calculate rule strengths by taking the product along the input dimension (dim=2)
+        return torch.prod(memberships, dim=2)
+
+    def __get_strength_by_blend(self, memberships):
+        """
+        Calculate the strengths of the rules using blend method.
+
+        Parameters:
+            - memberships (torch.Tensor): Membership values for each rule.
+
+        Returns:
+            - torch.Tensor: Strengths of the rules.
+        """
+        # Calculate strengths using a blend of product and mean
+        prod_strengths = torch.prod(memberships, dim=2)
+        mean_strengths = torch.mean(memberships, dim=2)
+        # Compute blending factor alpha based on log of product strength
+        log_strength = torch.log(prod_strengths + 1e-8)
+        alpha = torch.sigmoid(-10 * (log_strength + 6))
+        return (1 - alpha) * prod_strengths + alpha * mean_strengths
+
+    def _get_membership_strengths(self, X):
+        # Layer 1: Calculate membership values for all rules (N x num_rules x input_dim)
+        memberships = torch.stack([membership(X) for membership in self.memberships], dim=1)
+
+        # Layer 2: Calculate rule strengths
+        strengths = self._get_strength(memberships)
+
+        # Layer 3: Normalize strengths (N x num_rules)
+        strengths_sum = torch.sum(strengths, dim=1, keepdim=True)
+        return strengths / (strengths_sum + 1e-8)       # normalized_strengths
+
     def forward(self, X):
         """
         Forward pass through the Anfis model.
@@ -220,33 +263,12 @@ class CustomANFIS(nn.Module):
             - torch.Tensor: The output of the ANFIS model.
         """
         # Layer 1: Calculate membership values for all rules (N x num_rules x input_dim)
-        memberships = torch.stack([membership(X) for membership in self.memberships], dim=1)
-
         # Layer 2: Calculate rule strengths
-        if self.vanishing_strategy == "prod":
-            # Original: Taking the product along the input dimension (dim=2
-            strengths = torch.prod(memberships, dim=2)      # Resulting shape: (N, num_rules)
-        elif self.vanishing_strategy == "mean":
-            # Calculate strengths by taking the mean along the input dimension (dim=2)
-            strengths = torch.mean(memberships, dim=2)
-        elif self.vanishing_strategy == "blend":
-            # Calculate strengths using a blend of product and mean
-            prod_strengths = torch.prod(memberships, dim=2)
-            mean_strengths = torch.mean(memberships, dim=2)
-            # Compute blending factor alpha based on log of product strength
-            log_strength = torch.log(prod_strengths + 1e-8)
-            alpha = torch.sigmoid(-10 * (log_strength + 6))  # adjust parameters if needed
-            strengths = (1 - alpha) * prod_strengths + alpha * mean_strengths
-        else:
-            raise ValueError(f"Unknown vanishing strategy: {self.vanishing_strategy}")
-
         # Layer 3: Normalize strengths (N x num_rules)
-        strengths_sum = torch.sum(strengths, dim=1, keepdim=True)
-        normalized_strengths = strengths / (strengths_sum + 1e-8)
+        normalized_strengths = self._get_membership_strengths(X)
 
-        # Layer 4: Prepare input for consequent layer
-        # (N, num_rules, input_dim)
-        weighted_inputs = torch.einsum("ni,rij->nrj", X, self.coeffs[:, :-1, :]) + self.coeffs[:, -1,:]  # (N, num_rules, output_dim)
+        # Layer 4: Prepare input for consequent layer  ==> (N, num_rules, input_dim)
+        weighted_inputs = torch.einsum("ni,rij->nrj", X, self.coeffs[:, :-1, :]) + self.coeffs[:, -1, :]  # (N, num_rules, output_dim)
 
         # Layer 5: Apply normalized weights to rule outputs
         # Multiply with normalized strengths (broadcasting): (N, num_rules, 1) * (N, num_rules, output_dim)
@@ -256,82 +278,102 @@ class CustomANFIS(nn.Module):
         output = self.act_output_(output)  # (N, output_dim)
         return output
 
+    def update_output_weights_by_least_squares(self, X, y):
+        with torch.no_grad():
+            N = X.shape[0]
+            ones = torch.ones(N, 1)
+            X_bias = torch.cat([X, ones], dim=1)        # (N, input_dim + 1)
+            normalized_strengths = self._get_membership_strengths(X)        # (N x num_rules)
+
+            # Vectorized: Multiply strengths with X_bias
+            X_expanded = X_bias.unsqueeze(1)  # (N, 1, input_dim + 1)
+            strengths_expanded = normalized_strengths.unsqueeze(2)  # (N, num_rules, 1)
+            F = strengths_expanded * X_expanded  # (N, num_rules, input_dim + 1)
+            F = F.reshape(N, -1)  # (N, num_rules * (input_dim + 1))
+            if self.task =="classification" and (y.ndim == 1 or y.shape[1] == 1):
+                y = torch.nn.functional.one_hot(y.squeeze().long(), num_classes=self.output_dim).float()
+            else:
+                y = y.to(dtype=F.dtype)
+
+            if self.reg_lambda == 0:    # No regularization
+                # coeffs_flat = torch.linalg.lstsq(F, y, driver='gelsd').solution
+                coeffs_flat = torch.linalg.pinv(F) @ y
+
+            else:   # Least Squares Estimation with L2
+                I = torch.eye(F.shape[1], device=F.device, dtype=F.dtype)
+                coeffs_flat = torch.linalg.solve(F.T @ F + self.reg_lambda * I, F.T @ y)
+
+            coeffs = coeffs_flat.view(self.num_rules, self.input_dim + 1, self.output_dim)
+            self.coeffs.data.copy_(coeffs)
+
+            # coeffs = coeffs_flat.reshape(self.num_rules, self.input_dim + 1, self.output_dim)
+            # self.coeffs.data.copy_(coeffs)
+
+            # try:
+            #     coeffs_flat = torch.linalg.lstsq(F, y, driver='gelsd').solution
+            # except:
+            #     coeffs_flat = torch.linalg.pinv(F) @ y
+            # coeffs = coeffs_flat[:F.shape[1]].reshape(self.num_rules, self.input_dim + 1, self.output_dim)
+            # self.coeffs.data.copy_(coeffs)
+
     def set_weights(self, solution):
         """
-        Set network weights based on a given solution vector.
+        Set only the premise (non-consequent) weights of the network based on a given solution vector.
 
         Parameters:
-            - solution (np.ndarray): A flat array of weights to set in the model.
+            - solution (np.ndarray): A flat array of weights to set in the model (excluding consequent weights).
         """
         with torch.no_grad():
             idx = 0
-            for param in self.parameters():
+            for name, param in self.named_parameters():
+                if 'coeffs' in name:
+                    continue  # Skip consequent parameters
                 param_size = param.numel()
-                # Ensure dtype and device consistency
                 param.copy_(torch.tensor(solution[idx:idx + param_size], dtype=param.dtype, device=param.device).view(param.shape))
                 idx += param_size
 
     def get_weights(self):
         """
-        Retrieve network weights as a flattened array.
+        Retrieve only the premise (non-consequent) weights as a flattened NumPy array.
 
         Returns:
-            - np.ndarray: Flattened array of the model's weights.
+            - np.ndarray: Flattened array of the model's premise weights.
         """
-        return np.concatenate([param.data.cpu().numpy().flatten() for param in self.parameters()])
+        weights = []
+        for name, param in self.named_parameters():
+            if 'coeffs' in name:
+                continue  # Skip consequent parameters
+            weights.append(param.data.cpu().numpy().flatten())
+        return np.concatenate(weights)
 
     def get_weights_size(self):
         """
-        Calculate the total number of trainable parameters in the model.
+        Calculate the number of trainable premise (non-consequent) parameters in the model.
 
         Returns:
-            - int: Total number of parameters.
+            - int: Total number of premise parameters.
         """
-        return sum(param.numel() for param in self.parameters() if param.requires_grad)
-
+        return sum(
+            param.numel() for name, param in self.named_parameters()
+            if param.requires_grad and 'coeffs' not in name
+        )
 
 class BaseAnfis(BaseEstimator):
-    """
-    Base class for Adaptive Neuro-Fuzzy Inference System (ANFIS) models.
-
-    This class provides a foundation for implementing ANFIS models with support for
-    training, evaluation, and saving/loading models. It includes methods for handling
-    metrics, setting random seeds, and managing training loss history.
-
-    Attributes:
-        SUPPORTED_CLS_METRICS (list): List of supported classification metrics.
-        SUPPORTED_REG_METRICS (list): List of supported regression metrics.
-        num_rules (int): Number of fuzzy rules.
-        mf_class (str): Membership function class.
-        task (str): Task type, either "classification" or "regression".
-        act_output (str or None): Activation function for the output layer.
-        vanishing_strategy (str or None): Strategy for calculating rule strengths.
-        seed (int or None): Random seed for reproducibility.
-        network (nn.Module or None): Neural network representing the ANFIS model.
-        loss_train (list or None): Training loss history.
-
-    Methods:
-        set_seed(seed): Sets the random seed for reproducibility.
-        fit(X, y): Trains the ANFIS model on the given dataset.
-        predict(X): Generates predictions for input data.
-        score(X, y): Evaluates the model on the given dataset.
-        evaluate(y_true, y_pred, list_metrics): Evaluates the model using specified metrics.
-        save_training_loss(save_path, filename): Saves training loss history to a CSV file.
-        save_evaluation_metrics(y_true, y_pred, list_metrics, save_path, filename): Saves evaluation metrics to a CSV file.
-        save_y_predicted(X, y_true, save_path, filename): Saves true and predicted values to a CSV file.
-        save_model(save_path, filename): Saves the trained model to a pickle file.
-        load_model(load_path, filename): Loads a model from a pickle file.
-    """
 
     SUPPORTED_CLS_METRICS = get_all_classification_metrics()
     SUPPORTED_REG_METRICS = get_all_regression_metrics()
 
-    def __init__(self, num_rules, mf_class, task="classification", act_output=None, vanishing_strategy=None, seed=None):
+    def __init__(self, num_rules, mf_class, task="classification", act_output=None,
+                 vanishing_strategy=None, reg_lambda=None, seed=None):
         self.num_rules = num_rules
         self.mf_class = mf_class
         self.task = task
         self.act_output = act_output
         self.vanishing_strategy = vanishing_strategy
+        if reg_lambda is None:
+            self.reg_lambda = 0.
+        else:
+            self.reg_lambda = reg_lambda
         self.seed = seed
         self.network = None
         self.loss_train = None
@@ -580,86 +622,7 @@ class BaseAnfis(BaseEstimator):
         return pickle.load(open(f"{load_path}/{filename}", 'rb'))
 
 
-class BaseStandardAnfis(BaseAnfis):
-    """
-    A custom standard ANFIS class that extends the BaseAnfis class with
-    additional features such as early stopping, validation, and various supported optimizers.
-
-    Attributes
-    ----------
-    SUPPORTED_OPTIMIZERS : list
-        A list of optimizer names supported by the class.
-    epochs : int
-        Number of training epochs.
-    batch_size : int
-        Size of each training batch.
-    optim : str
-        Name of the optimizer to use from SUPPORTED_OPTIMIZERS.
-    optim_params : dict
-        Additional parameters for the optimizer.
-    early_stopping : bool
-        Flag to enable early stopping.
-    n_patience : int
-        Number of epochs to wait before stopping if no improvement.
-    epsilon : float
-        Minimum change to qualify as improvement.
-    valid_rate : float
-        Proportion of data to use for validation.
-    verbose : bool
-        If True, outputs training progress.
-    size_input : int or None
-        Number of input features (set during training).
-    size_output : int or None
-        Number of output features (set during training).
-    network : nn.Module or None
-        The ANFIS model instance.
-    optimizer : torch.optim.Optimizer or None
-        The optimizer used for training.
-    criterion : nn.Module or None
-        The loss function used for training.
-    early_stopper : EarlyStopper or None
-        Instance of EarlyStopper for managing early stopping.
-
-    Parameters
-    ----------
-    num_rules : int
-        Number of fuzzy rules.
-    mf_class : str
-        Membership function class.
-    act_output : str or None
-        Activation function for the output layer.
-    vanishing_strategy : str or None
-        Strategy for calculating rule strengths.
-    epochs : int, optional
-        Number of training epochs (default is 1000).
-    batch_size : int, optional
-        Size of each training batch (default is 16).
-    optim : str, optional
-        Name of the optimizer to use (default is "Adam").
-    optim_params : dict, optional
-        Additional parameters for the optimizer (default is None).
-    early_stopping : bool, optional
-        Flag to enable early stopping (default is True).
-    n_patience : int, optional
-        Number of epochs to wait before stopping if no improvement (default is 10).
-    epsilon : float, optional
-        Minimum change to qualify as improvement (default is 0.001).
-    valid_rate : float, optional
-        Proportion of data to use for validation (default is 0.1).
-    seed : int, optional
-        Random seed for reproducibility (default is 42).
-    verbose : bool, optional
-        If True, outputs training progress (default is True).
-
-    Methods
-    -------
-    build_model():
-        Build and initialize the ANFIS model, optimizer, and criterion based on user specifications.
-    process_data(X, y, **kwargs):
-        Process and prepare data for training.
-    _fit(data, **kwargs):
-        Train the ANFIS model on the provided data.
-    """
+class BaseClassicAnfis(BaseAnfis):
 
     SUPPORTED_OPTIMIZERS = [
         "Adafactor", "Adadelta", "Adagrad", "Adam",
@@ -668,14 +631,14 @@ class BaseStandardAnfis(BaseAnfis):
     ]
 
     def __init__(self, num_rules=10, mf_class="Gaussian", act_output=None, vanishing_strategy=None,
-                 epochs=1000, batch_size=16, optim="Adam", optim_params=None,
+                 reg_lambda=None, epochs=1000, batch_size=16, optim="Adam", optim_params=None,
                  early_stopping=True, n_patience=10, epsilon=0.001, valid_rate=0.1,
                  seed=42, verbose=True):
         """
         Initialize the ANFIS with user-defined architecture, training parameters, and optimization settings.
         """
         super().__init__(num_rules, mf_class, "classification", act_output=act_output,
-                         vanishing_strategy=vanishing_strategy,seed=seed)
+                         vanishing_strategy=vanishing_strategy, reg_lambda=reg_lambda, seed=seed)
         self.epochs = epochs
         self.batch_size = batch_size
         self.optim = optim
@@ -709,7 +672,158 @@ class BaseStandardAnfis(BaseAnfis):
 
         # Define model, optimizer, and loss criterion based on task
         self.network = CustomANFIS(self.size_input, self.num_rules, self.size_output, self.mf_class,
-                                   self.task, self.act_output, self.vanishing_strategy, self.seed)
+                                   self.task, self.act_output, self.vanishing_strategy, self.reg_lambda, self.seed)
+        # Freeze consequent parameters during GD
+        params = [p for name, p in self.network.named_parameters() if 'coeffs' not in name]
+        self.optimizer = getattr(torch.optim, self.optim)(params, **self.optim_params)
+
+        # Select loss function based on task type
+        if self.task == "classification":
+            self.criterion = nn.CrossEntropyLoss()
+        elif self.task == "binary_classification":
+            self.criterion = nn.BCEWithLogitsLoss()
+        else:
+            self.criterion = nn.MSELoss()
+
+    def process_data(self, X, y, **kwargs):
+        """
+        Process and prepare data for training.
+
+        Parameters
+        ----------
+        X : array-like
+            Feature data for training.
+        y : array-like
+            Target labels or values for training.
+        **kwargs : additional keyword arguments
+            Additional parameters for data processing, if needed.
+        """
+        pass  # Placeholder for data processing logic
+
+    def _fit(self, data, **kwargs):
+        """
+        Train the ANFIS model on the provided data.
+
+        Parameters
+        ----------
+        data : tuple
+            A tuple containing (train_loader, X_valid_tensor, y_valid_tensor) for training and validation.
+        **kwargs : additional keyword arguments
+            Additional parameters for training, if needed.
+        """
+        # Unpack training and validation data
+        train_loader, X_valid_tensor, y_valid_tensor = data
+
+        # Start training
+        self.network.train()  # Set model to training mode
+        for epoch in range(self.epochs):
+            # Initialize total loss for this epoch
+            total_loss = 0.0
+
+            # # Update consequent parameters using LSE for all training data
+            # X_all = torch.cat([x for x, _ in train_loader], dim=0)
+            # y_all = torch.cat([y for _, y in train_loader], dim=0)
+            # self.network.update_output_weights_by_least_squares(X_all.detach(), y_all.detach())
+
+            # Training step over batches
+            for batch_X, batch_y in train_loader:
+                self.optimizer.zero_grad()  # Clear gradients
+                # Update consequent parameters using LSE
+                self.network.update_output_weights_by_least_squares(batch_X.detach(), batch_y.detach())
+
+                # Forward pass
+                pred = self.network(batch_X)
+
+                # Compute loss with L2 regularization (only for trainable parameters)
+                l2_reg = sum(torch.sum(param ** 2) for name, param in self.network.named_parameters() if
+                             param.requires_grad and 'coeffs' not in name)
+                loss = self.criterion(pred, batch_y)  + self.reg_lambda * l2_reg # Compute loss
+
+                # Backpropagation and optimization
+                loss.backward()
+                self.optimizer.step()
+
+                total_loss += loss.item()  # Accumulate batch loss
+
+            # Calculate average training loss for this epoch
+            avg_loss = total_loss / len(train_loader)
+
+            # Perform validation if validation mode is enabled
+            if self.valid_mode:
+                self.network.eval()  # Set model to evaluation mode
+                with torch.no_grad():
+                    val_output = self.network(X_valid_tensor)
+                    val_loss = self.criterion(val_output, y_valid_tensor)
+
+                # Early stopping based on validation loss
+                if self.early_stopping and self.early_stopper.early_stop(val_loss):
+                    print(f"Early stopping at epoch {epoch + 1}")
+                    break
+                if self.verbose:
+                    print(f"Epoch: {epoch + 1}, Train Loss: {avg_loss:.4f}, Validation Loss: {val_loss:.4f}")
+            else:
+                # Early stopping based on training loss if no validation is used
+                if self.early_stopping and self.early_stopper.early_stop(avg_loss):
+                    print(f"Early stopping at epoch {epoch + 1}")
+                    break
+                if self.verbose:
+                    print(f"Epoch: {epoch + 1}, Train Loss: {avg_loss:.4f}")
+
+            # Return to training mode for next epoch
+            self.network.train()
+
+
+class BaseGdAnfis(BaseAnfis):
+
+    SUPPORTED_OPTIMIZERS = [
+        "Adafactor", "Adadelta", "Adagrad", "Adam",
+        "Adamax", "AdamW", "ASGD", "LBFGS", "NAdam",
+        "RAdam", "RMSprop", "Rprop", "SGD", "SparseAdam",
+    ]
+
+    def __init__(self, num_rules=10, mf_class="Gaussian", act_output=None, vanishing_strategy=None,
+                 reg_lambda=None, epochs=1000, batch_size=16, optim="Adam", optim_params=None,
+                 early_stopping=True, n_patience=10, epsilon=0.001, valid_rate=0.1,
+                 seed=42, verbose=True):
+        """
+        Initialize the ANFIS with user-defined architecture, training parameters, and optimization settings.
+        """
+        super().__init__(num_rules, mf_class, "classification", act_output=act_output,
+                         vanishing_strategy=vanishing_strategy, reg_lambda=reg_lambda, seed=seed)
+        self.epochs = epochs
+        self.batch_size = batch_size
+        self.optim = optim
+        self.optim_params = optim_params if optim_params else {}
+        self.early_stopping = early_stopping
+        self.n_patience = n_patience
+        self.epsilon = epsilon
+        self.valid_rate = valid_rate
+        self.verbose = verbose
+
+        # Internal attributes for model, optimizer, and early stopping
+        self.size_input = None
+        self.size_output = None
+        self.network = None
+        self.optimizer = None
+        self.criterion = None
+        self.patience_count = None
+        self.valid_mode = False
+        self.early_stopper = None
+
+    def build_model(self):
+        """
+        Build and initialize the ANFIS model, optimizer, and criterion based on user specifications.
+
+        This function sets up the model structure, optimizer type and parameters,
+        and loss criterion depending on the task type (classification or regression).
+        """
+        if self.early_stopping:
+            # Initialize early stopper if early stopping is enabled
+            self.early_stopper = EarlyStopper(patience=self.n_patience, epsilon=self.epsilon)
+
+        # Define model, optimizer, and loss criterion based on task
+        self.network = CustomANFIS(self.size_input, self.num_rules, self.size_output, self.mf_class,
+                                   self.task, self.act_output, self.vanishing_strategy, self.reg_lambda, self.seed)
         self.optimizer = getattr(torch.optim, self.optim)(self.network.parameters(), **self.optim_params)
 
         # Select loss function based on task type
@@ -759,11 +873,14 @@ class BaseStandardAnfis(BaseAnfis):
             for batch_X, batch_y in train_loader:
                 self.optimizer.zero_grad()  # Clear gradients
 
-                # Forward pass
-                output = self.network(batch_X)
-                loss = self.criterion(output, batch_y)  # Compute loss
+                # Step 1: forward pass
+                pred = self.network(batch_X)
 
-                # Backpropagation and optimization
+                # Step 2: compute loss with L2 regularization (only for trainable parameters)
+                l2_reg = sum(torch.sum(param ** 2) for name, param in self.network.named_parameters())
+                loss = self.criterion(pred, batch_y) + self.reg_lambda * l2_reg  # Compute loss
+
+                # Step 3: Backpropagation and optimization
                 loss.backward()
                 self.optimizer.step()
 
@@ -798,99 +915,18 @@ class BaseStandardAnfis(BaseAnfis):
 
 
 class BaseBioAnfis(BaseAnfis):
-    """
-    Base class for Metaheuristic-based ANFIS models that inherit from BaseAnfis.
-
-    This class provides functionality for integrating metaheuristic optimization algorithms
-    into the training process of Adaptive Neuro-Fuzzy Inference System (ANFIS) models. It supports
-    various optimization techniques, objective functions, and evaluation metrics.
-
-    Attributes
-    ----------
-    SUPPORTED_OPTIMIZERS : list
-        List of supported optimizer names from the Mealpy library.
-    SUPPORTED_CLS_OBJECTIVES : dict
-        Supported objectives for classification tasks.
-    SUPPORTED_REG_OBJECTIVES : dict
-        Supported objectives for regression tasks.
-    SUPPORTED_CLS_METRICS : dict
-        Supported metrics for classification evaluation.
-    SUPPORTED_REG_METRICS : dict
-        Supported metrics for regression evaluation.
-    size_input : int or None
-        Number of input features (set during training).
-    size_output : int or None
-        Number of output features (set during training).
-    network : nn.Module or None
-        The ANFIS model instance.
-    optimizer : Optimizer or None
-        The metaheuristic optimizer used for training.
-    obj_name : str or None
-        The name of the objective function used for optimization.
-    metric_class : permetrics.Metric or None
-        Metric class instance for evaluating the objective function.
-    data : tuple or None
-        Training data consisting of features and labels.
-
-    Parameters
-    ----------
-    num_rules : int
-        Number of fuzzy rules.
-    mf_class : str
-        Membership function class.
-    act_output : str or None
-        Activation function for the output layer.
-    vanishing_strategy : str or None
-        Strategy for calculating rule strengths.
-    optim : str, optional
-        Name of the optimization algorithm to be used (default is "BaseGA").
-    optim_params : dict, optional
-        Parameters for the optimizer (default is None).
-    obj_name : str, optional
-        Objective name for the model evaluation (default is None).
-    seed : int, optional
-        Random seed for reproducibility (default is 42).
-    verbose : bool, optional
-        Whether to print verbose output during training (default is True).
-
-    Methods
-    -------
-    __init__(num_rules, mf_class, act_output, vanishing_strategy, optim, optim_params, obj_name, seed, verbose):
-        Initializes the model parameters and configuration.
-
-    set_optim_and_paras(optim, optim_params):
-        Sets the optimizer and its parameters.
-
-    _set_optimizer(optim, optim_params):
-        Validates and initializes the optimizer based on the provided name or instance.
-
-    get_name():
-        Generates a descriptive name for the ANFIS model based on the optimizer.
-
-    build_model():
-        Builds the model architecture and sets the optimizer and loss function.
-
-    _set_lb_ub(lb, ub, n_dims):
-        Validates and sets the lower and upper bounds for optimization.
-
-    objective_function(solution):
-        Evaluates the fitness function for the given solution.
-
-    _fit(data, lb, ub, mode, n_workers, termination, save_population, **kwargs):
-        Fits the model to the provided data using the specified optimizer.
-    """
 
     SUPPORTED_OPTIMIZERS = list(get_all_optimizers().keys())
     SUPPORTED_CLS_OBJECTIVES = get_all_classification_metrics()
     SUPPORTED_REG_OBJECTIVES = get_all_regression_metrics()
 
-    def __init__(self, num_rules=10, mf_class="Gaussian", act_output=None, vanishing_strategy=None,
+    def __init__(self, num_rules=10, mf_class="Gaussian", act_output=None, vanishing_strategy=None, reg_lambda=None,
                  optim="BaseGA", optim_params=None, obj_name=None, seed=42, verbose=True):
         """
         Initializes the BaseBioAnfis class.
         """
-        super().__init__(num_rules, mf_class, "classification",
-                         act_output=act_output, vanishing_strategy=vanishing_strategy, seed=seed)
+        super().__init__(num_rules, mf_class, "classification", act_output=act_output,
+                         vanishing_strategy=vanishing_strategy, reg_lambda=reg_lambda, seed=seed)
         self.optim = optim
         self.optim_params = optim_params
         self.verbose = verbose
@@ -981,12 +1017,8 @@ class BaseBioAnfis(BaseAnfis):
         ValueError
             If the task is not recognized.
         """
-
-        # input_dim=None, num_rules=None, output_dim=None, mf_class=None,
-        #                  task="classification", act_output=None, seed=None
-
-        self.network = CustomANFIS(self.size_input, self.num_rules, self.size_output,
-                                   self.mf_class, self.task, self.act_output, self.seed)
+        self.network = CustomANFIS(self.size_input, self.num_rules, self.size_output, self.mf_class, self.task,
+                                   self.act_output, self.vanishing_strategy, self.reg_lambda, self.seed)
 
         self.optimizer = self._set_optimizer(self.optim, self.optim_params)
 
@@ -1048,7 +1080,9 @@ class BaseBioAnfis(BaseAnfis):
         """
         X_train, y_train = self.data
         self.network.set_weights(solution)
+        self.network.update_output_weights_by_least_squares(X_train, y_train)
         y_pred = self.network(X_train).detach().cpu().numpy()
+        y_train = y_train.detach().cpu().numpy()
         loss_train = self.metric_class(y_train, y_pred).get_metric_by_name(self.obj_name)[self.obj_name]
         return np.mean([loss_train])
 
@@ -1113,5 +1147,6 @@ class BaseBioAnfis(BaseAnfis):
         else:
             self.optimizer.solve(problem, mode=mode, n_workers=n_workers, termination=termination, seed=self.seed)
         self.network.set_weights(self.optimizer.g_best.solution)
+        self.network.update_output_weights_by_least_squares(data[0], data[1])
         self.loss_train = np.array(self.optimizer.history.list_global_best_fit)
         return self
