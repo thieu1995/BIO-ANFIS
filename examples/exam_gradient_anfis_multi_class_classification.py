@@ -27,7 +27,7 @@ print(type(data.X_train), type(data.y_train))
 
 ## Create model
 model = GdAnfisClassifier(num_rules=20, mf_class="Sigmoid",
-                          act_output=None, vanishing_strategy="blend", reg_lambda=None,
+                          vanishing_strategy="blend", act_output=None, reg_lambda=None,
                           epochs=50, batch_size=16, optim="Adam", optim_params={"lr": 0.01},
                           early_stopping=True, n_patience=10, epsilon=0.001, valid_rate=0.1,
                           seed=42, verbose=True)
