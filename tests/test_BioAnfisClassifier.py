@@ -8,7 +8,7 @@ import pytest
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
-from banfis import MhaMlpClassifier
+from xanfis import BioAnfisClassifier
 
 
 @pytest.fixture
@@ -21,21 +21,17 @@ def data():
 
 @pytest.fixture
 def classifier():
-    # Initialize the MhaMlpClassifier with default parameters
-    return MhaMlpClassifier(
-        hidden_layers=[50, 25],
-        act_names="ReLU",
-        dropout_rates=0.2,
-        optim="BaseGA",
-        optim_paras={"epoch": 10, "pop_size": 20},
-        seed=42,
-        verbose=False
+    # Initialize the BioAnfisClassifier with default parameters
+    return BioAnfisClassifier(
+        num_rules=10, mf_class="Gaussian", vanishing_strategy="prod",
+        optim="BaseGA", optim_params={"epoch": 10, "pop_size": 20},
+        seed=42, verbose=False
     )
 
 
 def test_initialization(classifier):
     # Test if the classifier initializes correctly
-    assert isinstance(classifier, MhaMlpClassifier)
+    assert isinstance(classifier, BioAnfisClassifier)
     assert classifier.seed == 42
     assert classifier.task == "classification"  # Default should be classification
 
