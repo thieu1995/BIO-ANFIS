@@ -13,6 +13,7 @@ from xanfis import BioAnfisRegressor
 X = np.random.rand(80, 4)
 y = np.random.rand(80, 1)
 
+
 @pytest.fixture
 def model():
     """Fixture to create a BioAnfisRegressor instance."""
