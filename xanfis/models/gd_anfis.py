@@ -40,10 +40,10 @@ class GdAnfisClassifier(BaseGdAnfis, ClassifierMixin):
         Number of fuzzy rules for the ANFIS model (default is 10).
     mf_class : str, optional
         Membership function class (default is "Gaussian").
+    vanishing_strategy : str or None, optional
+        Strategy for calculating rule strengths (default is 'prod').
     act_output : str, optional
         Activation function for the output layer (default is None).
-    vanishing_strategy : str or None, optional
-        Strategy for calculating rule strengths (default is None).
     reg_lambda : float or None, optional
         Regularization parameter (default is None).
     epochs : int, optional
@@ -88,12 +88,12 @@ class GdAnfisClassifier(BaseGdAnfis, ClassifierMixin):
         Returns performance metrics for the model on the provided test data.
     """
 
-    def __init__(self, num_rules=10, mf_class="Gaussian", act_output=None, vanishing_strategy=None,
+    def __init__(self, num_rules=10, mf_class="Gaussian", vanishing_strategy="prod", act_output=None,
                  reg_lambda=None, epochs=1000, batch_size=16, optim="Adam", optim_params=None,
                  early_stopping=True, n_patience=10, epsilon=0.001, valid_rate=0.1,
                  seed=42, verbose=True):
         # Call superclass initializer with the specified parameters.
-        super().__init__(num_rules, mf_class, act_output, vanishing_strategy, reg_lambda,
+        super().__init__(num_rules, mf_class, vanishing_strategy, act_output, reg_lambda,
                          epochs, batch_size, optim, optim_params,
                          early_stopping, n_patience, epsilon, valid_rate, seed, verbose)
         self.classes_ = None
@@ -303,10 +303,10 @@ class GdAnfisRegressor(BaseGdAnfis, RegressorMixin):
         Number of fuzzy rules for the ANFIS model (default is 10).
     mf_class : str, optional
         Membership function class (default is "Gaussian").
+    vanishing_strategy : str or None, optional
+        Strategy for calculating rule strengths (default is 'prod').
     act_output : str, optional
         Activation function for the output layer (default is None).
-    vanishing_strategy : str or None, optional
-        Strategy for calculating rule strengths (default is None).
     reg_lambda : float or None, optional
         Regularization parameter (default is None).
     epochs : int, optional
@@ -349,11 +349,11 @@ class GdAnfisRegressor(BaseGdAnfis, RegressorMixin):
         Returns a list of performance metrics for the predictions.
     """
 
-    def __init__(self, num_rules=10, mf_class="Gaussian", act_output=None, vanishing_strategy=None,
+    def __init__(self, num_rules=10, mf_class="Gaussian", vanishing_strategy="prod", act_output=None,
                  reg_lambda=None, epochs=1000, batch_size=16, optim="Adam", optim_params=None,
                  early_stopping=True, n_patience=10, epsilon=0.001, valid_rate=0.1,
                  seed=42, verbose=True):
-        super().__init__(num_rules, mf_class, act_output, vanishing_strategy, reg_lambda,
+        super().__init__(num_rules, mf_class, vanishing_strategy, act_output, reg_lambda,
                          epochs, batch_size, optim, optim_params,
                          early_stopping, n_patience, epsilon, valid_rate, seed, verbose)
 
