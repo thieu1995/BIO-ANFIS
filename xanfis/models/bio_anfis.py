@@ -34,10 +34,10 @@ class BioAnfisClassifier(BaseBioAnfis, ClassifierMixin):
         Number of fuzzy rules (default is 10).
     mf_class : str, optional
         Membership function class (default is "Gaussian").
+    vanishing_strategy : str or None, optional
+        Strategy for calculating rule strengths (default is 'prod').
     act_output : any, optional
         Activation function for the output layer (default is None).
-    vanishing_strategy : str or None, optional
-        Strategy for calculating rule strengths (default is None).
     reg_lambda : float or None, optional
         Regularization parameter (default is None). This is used for regularizing the model.
     optim : str, optional
@@ -69,7 +69,7 @@ class BioAnfisClassifier(BaseBioAnfis, ClassifierMixin):
         Returns the list of performance metrics on the given test data and labels.
     """
 
-    def __init__(self, num_rules=10, mf_class="Gaussian", act_output=None, vanishing_strategy=None, reg_lambda=None,
+    def __init__(self, num_rules=10, mf_class="Gaussian", vanishing_strategy="prod", act_output=None, reg_lambda=None,
                  optim="BaseGA", optim_params=None, obj_name="F1S", seed=42, verbose=True):
         """
         Initializes the BioAnfisClassifier with specified parameters.
@@ -80,10 +80,10 @@ class BioAnfisClassifier(BaseBioAnfis, ClassifierMixin):
             Number of fuzzy rules (default is 10).
         mf_class : str, optional
             Membership function class (default is "Gaussian").
+        vanishing_strategy : str or None, optional
+            Strategy for calculating rule strengths (default is 'prod').
         act_output : any, optional
             Activation function for the output layer (default is None).
-        vanishing_strategy : str or None, optional
-            Strategy for calculating rule strengths (default is None).
         reg_lambda : float or None, optional
             Regularization parameter (default is None). This is used for regularizing the model.
         optim : str, optional
@@ -97,7 +97,7 @@ class BioAnfisClassifier(BaseBioAnfis, ClassifierMixin):
         verbose : bool, optional
             Whether to print detailed logs during fitting (default is True).
         """
-        super().__init__(num_rules, mf_class, act_output, vanishing_strategy, reg_lambda,
+        super().__init__(num_rules, mf_class, vanishing_strategy, act_output, reg_lambda,
                          optim, optim_params, obj_name, seed, verbose)
         self.classes_ = None  # Initialize classes to None
         self.metric_class = ClassificationMetric  # Set the metric class for evaluation
@@ -282,10 +282,10 @@ class BioAnfisRegressor(BaseBioAnfis, RegressorMixin):
         Number of fuzzy rules (default is 10).
     mf_class : str, optional
         Membership function class (default is "Gaussian").
+    vanishing_strategy : str or None, optional
+        Strategy for calculating rule strengths (default is 'prod').
     act_output : any, optional
         Activation function for the output layer (default is None).
-    vanishing_strategy : str or None, optional
-        Strategy for calculating rule strengths (default is None).
     reg_lambda : float or None, optional
         Regularization parameter (default is None). This is used for regularizing the model.
     optim : str, optional
@@ -314,7 +314,7 @@ class BioAnfisRegressor(BaseBioAnfis, RegressorMixin):
         Returns the list of performance metrics on the given test data and labels.
     """
 
-    def __init__(self, num_rules=10, mf_class="Gaussian", act_output=None, vanishing_strategy=None, reg_lambda=None,
+    def __init__(self, num_rules=10, mf_class="Gaussian", vanishing_strategy="prod", act_output=None, reg_lambda=None,
                  optim="BaseGA", optim_params=None, obj_name="MSE", seed=42, verbose=True):
         """
         Initializes the BioAnfisRegressor with specified parameters.
@@ -325,10 +325,10 @@ class BioAnfisRegressor(BaseBioAnfis, RegressorMixin):
             Number of fuzzy rules (default is 10).
         mf_class : str, optional
             Membership function class (default is "Gaussian").
+        vanishing_strategy : str or None, optional
+            Strategy for calculating rule strengths (default is 'prod').
         act_output : any, optional
             Activation function for the output layer (default is None).
-        vanishing_strategy : str or None, optional
-            Strategy for calculating rule strengths (default is None).
         reg_lambda : float or None, optional
             Regularization parameter (default is None). This is used for regularizing the model.
         optim : str, optional
@@ -342,7 +342,7 @@ class BioAnfisRegressor(BaseBioAnfis, RegressorMixin):
         verbose : bool, optional
             Whether to print detailed logs during fitting (default is True).
         """
-        super().__init__(num_rules, mf_class, act_output, vanishing_strategy, reg_lambda,
+        super().__init__(num_rules, mf_class, vanishing_strategy, act_output, reg_lambda,
                          optim, optim_params, obj_name, seed, verbose)
         self.metric_class = RegressionMetric  # Set the metric class for evaluation
 
