@@ -155,7 +155,7 @@ class CustomANFIS(nn.Module):
     SUPPORTED_VANISHING_STRATEGIES = ["prod", "mean", "blend"]
 
     def __init__(self, input_dim=None, num_rules=None, output_dim=None, mf_class=None,
-                 task="classification", act_output=None, vanishing_strategy="prod", reg_lambda=None,
+                 task="classification", vanishing_strategy="prod", act_output=None, reg_lambda=None,
                  seed=None, **kwargs):
         """
         Initialize a customizable multi-layer perceptron (ANFIS) model.
@@ -167,7 +167,6 @@ class CustomANFIS(nn.Module):
         self.num_rules = num_rules
         self.task = task
         self.act_output = act_output
-        self.vanishing_strategy = vanishing_strategy
         self.seed = seed
         if reg_lambda is None:
             self.reg_lambda = 0.
