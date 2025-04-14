@@ -17,7 +17,7 @@ class BioAnfisClassifier(BaseBioAnfis, ClassifierMixin):
     A Bio-based ANFIS Classifier that extends the BaseBioAnfis class and implements
     the ClassifierMixin interface from Scikit-Learn for classification tasks.
 
-    This class integrates metaheuristic optimization algorithms for training an Adaptive
+    This class integrates bio-inspired optimization algorithms for training an Adaptive
     Neuro-Fuzzy Inference System (ANFIS) model, supporting both binary and multi-class
     classification tasks.
 
@@ -38,6 +38,8 @@ class BioAnfisClassifier(BaseBioAnfis, ClassifierMixin):
         Activation function for the output layer (default is None).
     vanishing_strategy : str or None, optional
         Strategy for calculating rule strengths (default is None).
+    reg_lambda : float or None, optional
+        Regularization parameter (default is None). This is used for regularizing the model.
     optim : str, optional
         The optimization algorithm to use (default is "BaseGA").
     optim_params : dict, optional
@@ -52,7 +54,7 @@ class BioAnfisClassifier(BaseBioAnfis, ClassifierMixin):
     Methods
     -------
     fit(X, y, lb=(-1.0,), ub=(1.0,), mode='single', n_workers=None, termination=None, save_population=False, **kwargs):
-        Fits the model to the training data using the specified metaheuristic optimizer.
+        Fits the model to the training data using the specified bio-inspired optimizer.
 
     predict(X):
         Predicts the class labels for the provided input data.
@@ -71,6 +73,29 @@ class BioAnfisClassifier(BaseBioAnfis, ClassifierMixin):
                  optim="BaseGA", optim_params=None, obj_name="F1S", seed=42, verbose=True):
         """
         Initializes the BioAnfisClassifier with specified parameters.
+
+        Parameters
+        ----------
+        num_rules : int, optional
+            Number of fuzzy rules (default is 10).
+        mf_class : str, optional
+            Membership function class (default is "Gaussian").
+        act_output : any, optional
+            Activation function for the output layer (default is None).
+        vanishing_strategy : str or None, optional
+            Strategy for calculating rule strengths (default is None).
+        reg_lambda : float or None, optional
+            Regularization parameter (default is None). This is used for regularizing the model.
+        optim : str, optional
+            The optimization algorithm to use (default is "BaseGA").
+        optim_params : dict, optional
+            Parameters for the optimizer (default is None).
+        obj_name : str, optional
+            The objective name for the optimization (default is "F1S").
+        seed : int, optional
+            Random seed for reproducibility (default is 42).
+        verbose : bool, optional
+            Whether to print detailed logs during fitting (default is True).
         """
         super().__init__(num_rules, mf_class, act_output, vanishing_strategy, reg_lambda,
                          optim, optim_params, obj_name, seed, verbose)
@@ -234,7 +259,7 @@ class BioAnfisRegressor(BaseBioAnfis, RegressorMixin):
     A Bio-based ANFIS Regressor that extends the BaseBioAnfis class and implements
     the RegressorMixin interface from Scikit-Learn for regression tasks.
 
-    This class integrates metaheuristic optimization algorithms for training an Adaptive
+    This class integrates bio-inspired optimization algorithms for training an Adaptive
     Neuro-Fuzzy Inference System (ANFIS) model, supporting both single-output and multi-output
     regression tasks.
 
@@ -261,6 +286,8 @@ class BioAnfisRegressor(BaseBioAnfis, RegressorMixin):
         Activation function for the output layer (default is None).
     vanishing_strategy : str or None, optional
         Strategy for calculating rule strengths (default is None).
+    reg_lambda : float or None, optional
+        Regularization parameter (default is None). This is used for regularizing the model.
     optim : str, optional
         The optimization algorithm to use (default is "BaseGA").
     optim_params : dict, optional
@@ -275,7 +302,7 @@ class BioAnfisRegressor(BaseBioAnfis, RegressorMixin):
     Methods
     -------
     fit(X, y, lb=(-1.0,), ub=(1.0,), mode='single', n_workers=None, termination=None, save_population=False, **kwargs):
-        Fits the model to the training data using the specified metaheuristic optimizer.
+        Fits the model to the training data using the specified bio-inspired optimizer.
 
     predict(X):
         Predicts the output values for the provided input data.
@@ -291,6 +318,29 @@ class BioAnfisRegressor(BaseBioAnfis, RegressorMixin):
                  optim="BaseGA", optim_params=None, obj_name="MSE", seed=42, verbose=True):
         """
         Initializes the BioAnfisRegressor with specified parameters.
+
+        Parameters
+        ----------
+        num_rules : int, optional
+            Number of fuzzy rules (default is 10).
+        mf_class : str, optional
+            Membership function class (default is "Gaussian").
+        act_output : any, optional
+            Activation function for the output layer (default is None).
+        vanishing_strategy : str or None, optional
+            Strategy for calculating rule strengths (default is None).
+        reg_lambda : float or None, optional
+            Regularization parameter (default is None). This is used for regularizing the model.
+        optim : str, optional
+            The optimization algorithm to use (default is "BaseGA").
+        optim_params : dict, optional
+            Parameters for the optimizer (default is None).
+        obj_name : str, optional
+            The objective name for the optimization (default is "MSE").
+        seed : int, optional
+            Random seed for reproducibility (default is 42).
+        verbose : bool, optional
+            Whether to print detailed logs during fitting (default is True).
         """
         super().__init__(num_rules, mf_class, act_output, vanishing_strategy, reg_lambda,
                          optim, optim_params, obj_name, seed, verbose)
