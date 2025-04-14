@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Created by "Thieu" at 22:09, 10/04/2025 ----------%                                                                               
+# Created by "Thieu" at 07:14, 14/04/2025 ----------%                                                                               
 #       Email: nguyenthieu2102@gmail.com            %                                                    
 #       Github: https://github.com/thieu1995        %                         
 # --------------------------------------------------%
@@ -10,82 +10,86 @@ from torch.utils.data import TensorDataset, DataLoader
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, r2_score
 from sklearn.base import ClassifierMixin, RegressorMixin
-from banfis.models.base_anfis import BaseGdAnfis
+from xanfis.models.base_anfis import BaseClassicAnfis
 
 
-class GdAnfisClassifier(BaseGdAnfis, ClassifierMixin):
+class AnfisClassifier(BaseClassicAnfis, ClassifierMixin):
     """
-    Adaptive Neuro-Fuzzy Inference System (ANFIS) Classifier for predicting class labels.
+    Classic Adaptive Neuro-Fuzzy Inference System (ANFIS) Classifier
 
-    This class integrates Adaptive Neuro-Fuzzy Inference System (ANFIS) with gradient-based optimization
-    techniques for classification tasks. It supports both binary and multi-class classification, enabling
-    users to perform predictions on categorical target variables.
+    This classifier implements a traditional ANFIS model for classification tasks (binary and multi-class), where:
+      - The parameters of the fuzzy membership functions are updated using a gradient descent-based algorithm.
+      - The parameters of the output layer are estimated analytically using either the pseudo-inverse method or
+        Ridge regression.
+
+    The architecture supports flexible configuration of fuzzy rules, membership function types, output activation,
+    and various optimization strategies for training.
 
     Attributes
     ----------
-    classes_ : array-like, shape (n_classes,)
-        List of unique class labels determined during the fitting process.
+    classes_ : np.ndarray
+        Unique class labels inferred from the training target data.
     size_input : int
-        Number of input features (set during training).
+        Number of input features.
     size_output : int
-        Number of output classes (set during training).
+        Number of output neurons, determined by the number of classes.
     task : str
-        The type of classification task ("binary_classification" or "classification").
+        Type of classification task: "binary_classification" or "classification" (multi-class).
     network : nn.Module
-        The ANFIS model instance.
+        The internal ANFIS network model built dynamically during training.
 
     Parameters
     ----------
-    num_rules : int, optional
-        Number of fuzzy rules for the ANFIS model (default is 10).
-    mf_class : str, optional
-        Membership function class (default is "Gaussian").
-    act_output : str, optional
-        Activation function for the output layer (default is None).
-    vanishing_strategy : str or None, optional
-        Strategy for calculating rule strengths (default is None).
-    reg_lambda : float or None, optional
-        Regularization parameter (default is None).
-    epochs : int, optional
-        Number of epochs for training (default is 1000).
-    batch_size : int, optional
-        Size of the mini-batch during training (default is 16).
-    optim : str, optional
-        Optimization algorithm (default is "Adam").
-    optim_params : dict, optional
-        Additional parameters for the optimizer (default is None).
-    early_stopping : bool, optional
-        Flag to enable early stopping during training (default is True).
-    n_patience : int, optional
-        Number of epochs to wait for improvement before stopping (default is 10).
-    epsilon : float, optional
-        Tolerance for improvement (default is 0.001).
-    valid_rate : float, optional
-        Proportion of data to use for validation (default is 0.1).
-    seed : int, optional
-        Random seed for reproducibility (default is 42).
-    verbose : bool, optional
-        Flag to enable verbose output during training (default is True).
+    num_rules : int, optional (default=10)
+        Number of fuzzy rules to be used in the rule base.
+    mf_class : str, optional (default="Gaussian")
+        Type of membership function used in the fuzzy layer.
+    act_output : str or None, optional (default=None)
+        Activation function applied at the output layer.
+    vanishing_strategy : str or None, optional (default=None)
+        Strategy to address vanishing rule strengths, if any.
+    reg_lambda : float or None, optional (default=None)
+        Regularization strength for Ridge regression (if used in output parameter estimation).
+    epochs : int, optional (default=1000)
+        Number of training iterations.
+    batch_size : int, optional (default=16)
+        Number of samples per batch during training.
+    optim : str, optional (default="Adam")
+        Name of the optimizer to use for training the membership function parameters.
+    optim_params : dict or None, optional (default=None)
+        Dictionary of optimizer hyperparameters, such as learning rate or momentum.
+    early_stopping : bool, optional (default=True)
+        Whether to apply early stopping during training based on validation loss.
+    n_patience : int, optional (default=10)
+        Number of epochs with no improvement before early stopping is triggered.
+    epsilon : float, optional (default=0.001)
+        Minimum improvement in validation loss to continue training.
+    valid_rate : float, optional (default=0.1)
+        Fraction of training data reserved for validation.
+    seed : int, optional (default=42)
+        Random seed used for reproducibility.
+    verbose : bool, optional (default=True)
+        Whether to print training progress and validation results.
 
     Methods
     -------
     process_data(X, y, **kwargs):
-        Prepares and processes data for training, including optional splitting into validation data.
+        Splits and preprocesses the training data, and prepares PyTorch DataLoader objects.
 
     fit(X, y, **kwargs):
-        Trains the ANFIS model on the provided data.
+        Builds and trains the ANFIS classifier using the hybrid learning approach.
 
     predict(X):
-        Predicts the class labels for the given input data.
+        Predicts class labels for the given input samples.
 
     score(X, y):
-        Computes the accuracy score for the classifier.
+        Computes the classification accuracy on the given dataset.
 
     predict_proba(X):
-        Computes the probability estimates for each class (for classification tasks only).
+        Returns predicted probabilities for each class (available for classification tasks only).
 
     evaluate(y_true, y_pred, list_metrics=("AS", "RS")):
-        Returns performance metrics for the model on the provided test data.
+        Computes evaluation metrics using the Permetrics library.
     """
 
     def __init__(self, num_rules=10, mf_class="Gaussian", act_output=None, vanishing_strategy=None,
@@ -278,13 +282,14 @@ class GdAnfisClassifier(BaseGdAnfis, ClassifierMixin):
         return self._BaseAnfis__evaluate_cls(y_true, y_pred, list_metrics)
 
 
-class GdAnfisRegressor(BaseGdAnfis, RegressorMixin):
+class AnfisRegressor(BaseClassicAnfis, RegressorMixin):
     """
     Adaptive Neuro-Fuzzy Inference System (ANFIS) Regressor for predicting continuous values.
 
-    This class integrates Adaptive Neuro-Fuzzy Inference System (ANFIS) with gradient-based optimization
-    techniques for regression tasks. It supports both single-output and multi-output regression, allowing
-    users to perform predictions on continuous target variables.
+    This classifier implements a traditional ANFIS model for regression tasks (single and multi-output), where:
+      - The parameters of the fuzzy membership functions are updated using a gradient descent-based algorithm.
+      - The parameters of the output layer are estimated analytically using either the pseudo-inverse method or
+        Ridge regression.
 
     Attributes
     ----------
@@ -300,7 +305,7 @@ class GdAnfisRegressor(BaseGdAnfis, RegressorMixin):
     Parameters
     ----------
     num_rules : int, optional
-        Number of fuzzy rules for the ANFIS model (default is 10).
+        Number of fuzzy rules (default is 10).
     mf_class : str, optional
         Membership function class (default is "Gaussian").
     act_output : str, optional
@@ -308,14 +313,14 @@ class GdAnfisRegressor(BaseGdAnfis, RegressorMixin):
     vanishing_strategy : str or None, optional
         Strategy for calculating rule strengths (default is None).
     reg_lambda : float or None, optional
-        Regularization parameter (default is None).
+        Regularization strength for the output layer (default is None).
     epochs : int, optional
         Number of epochs for training (default is 1000).
     batch_size : int, optional
         Size of the mini-batch during training (default is 16).
     optim : str, optional
         Optimization algorithm (default is "Adam").
-    optim_params : dict, optional
+    optim_params : dict or None, optional
         Additional parameters for the optimizer (default is None).
     early_stopping : bool, optional
         Flag to enable early stopping during training (default is True).
@@ -419,7 +424,7 @@ class GdAnfisRegressor(BaseGdAnfis, RegressorMixin):
 
         Returns
         -------
-        self : GdAnfisRegressor
+        self : AnfisRegressor
             Returns the instance of the fitted model.
         """
         # Check and prepare the input parameters

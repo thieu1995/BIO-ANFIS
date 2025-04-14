@@ -9,7 +9,7 @@ import torch
 from sklearn.metrics import accuracy_score, r2_score
 from sklearn.base import ClassifierMixin, RegressorMixin
 from permetrics import ClassificationMetric, RegressionMetric
-from banfis.models.base_anfis import BaseBioAnfis
+from xanfis.models.base_anfis import BaseBioAnfis
 
 
 class BioAnfisClassifier(BaseBioAnfis, ClassifierMixin):

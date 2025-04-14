@@ -5,7 +5,7 @@
 # --------------------------------------------------%
 
 import numpy as np
-from banfis.helpers.scaler_util import DataTransformer
+from xanfis.helpers.scaler_util import DataTransformer
 from sklearn.model_selection import train_test_split
 
 

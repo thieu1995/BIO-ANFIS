@@ -6,8 +6,8 @@
 
 __version__ = "1.0.0"
 
-from banfis.helpers.membership_family import *
-from banfis.helpers.preprocessor import Data, DataTransformer
-from banfis.models.classic_anfis import AnfisClassifier, AnfisRegressor
-from banfis.models.gd_anfis import GdAnfisClassifier, GdAnfisRegressor
-from banfis.models.bio_anfis import BioAnfisClassifier, BioAnfisRegressor
+from xanfis.helpers.membership_family import *
+from xanfis.helpers.preprocessor import Data, DataTransformer
+from xanfis.models.classic_anfis import AnfisClassifier, AnfisRegressor
+from xanfis.models.gd_anfis import GdAnfisClassifier, GdAnfisRegressor
+from xanfis.models.bio_anfis import BioAnfisClassifier, BioAnfisRegressor

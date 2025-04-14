@@ -16,9 +16,9 @@ import torch.nn as nn
 from sklearn.base import BaseEstimator
 from mealpy import get_optimizer_by_name, Optimizer, get_all_optimizers, FloatVar
 from permetrics import ClassificationMetric, RegressionMetric
-from banfis.helpers import membership_family as mfam
-from banfis.helpers.metric_util import get_all_regression_metrics, get_all_classification_metrics
-from banfis.helpers import validator
+from xanfis.helpers import membership_family as mfam
+from xanfis.helpers.metric_util import get_all_regression_metrics, get_all_classification_metrics
+from xanfis.helpers import validator
 
 
 # Create a TypeVar for the base class
