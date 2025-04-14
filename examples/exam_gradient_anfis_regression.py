@@ -4,7 +4,7 @@
 #       Github: https://github.com/thieu1995        %                         
 # --------------------------------------------------%
 
-from banfis import Data, AnfisRegressor
+from banfis import Data, GdAnfisRegressor
 from sklearn.datasets import load_diabetes
 
 
@@ -26,10 +26,11 @@ data.y_test = scaler_y.transform(data.y_test)
 print(type(data.X_train), type(data.y_train))
 
 ## Create model
-model = AnfisRegressor(num_rules=10, mf_class="Linear", act_output=None, vanishing_strategy="blend",
-                    epochs=100, batch_size=16, optim="Adam", optim_params=None,
-                    early_stopping=True, n_patience=10, epsilon=0.001, valid_rate=0.1,
-                    seed=42, verbose=True)
+model = GdAnfisRegressor(num_rules=10, mf_class="Gaussian", act_output=None,
+                         vanishing_strategy="prod", reg_lambda=None,
+                         epochs=100, batch_size=16, optim="Adam", optim_params=None,
+                         early_stopping=True, n_patience=10, epsilon=0.1, valid_rate=0.1,
+                         seed=42, verbose=True)
 ## Train the model
 model.fit(data.X_train, data.y_train)
 
@@ -38,4 +39,4 @@ y_pred = model.predict(data.X_test)
 print(y_pred)
 
 ## Calculate some metrics
-print(model.evaluate(y_true=data.y_test, y_pred=y_pred, list_metrics=["R2", "NSE", "MAPE", "NNSE"]))
+print(model.evaluate(y_true=data.y_test, y_pred=y_pred, list_metrics=["R", "NSE", "MAPE", "KGE", "R2S", "R2"]))

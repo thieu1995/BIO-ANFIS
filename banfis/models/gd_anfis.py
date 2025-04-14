@@ -15,19 +15,20 @@ from banfis.models.base_anfis import BaseGdAnfis
 
 class GdAnfisClassifier(BaseGdAnfis, ClassifierMixin):
     """
-    Adaptive Neuro-Fuzzy Inference System (ANFIS) Classifier that inherits from BaseGdAnfis and ClassifierMixin.
+    Adaptive Neuro-Fuzzy Inference System (ANFIS) Classifier for predicting class labels.
 
-    This class integrates ANFIS with gradient-based optimization techniques for classification tasks, supporting both
-    binary and multi-class classification.
+    This class integrates Adaptive Neuro-Fuzzy Inference System (ANFIS) with gradient-based optimization
+    techniques for classification tasks. It supports both binary and multi-class classification, enabling
+    users to perform predictions on categorical target variables.
 
     Attributes
     ----------
-    classes_ : np.ndarray
-        Unique classes found in the target variable.
+    classes_ : array-like, shape (n_classes,)
+        List of unique class labels determined during the fitting process.
     size_input : int
         Number of input features (set during training).
     size_output : int
-        Number of output features (set during training).
+        Number of output classes (set during training).
     task : str
         The type of classification task ("binary_classification" or "classification").
     network : nn.Module
@@ -36,33 +37,35 @@ class GdAnfisClassifier(BaseGdAnfis, ClassifierMixin):
     Parameters
     ----------
     num_rules : int, optional
-        Number of fuzzy rules (default is 10).
+        Number of fuzzy rules for the ANFIS model (default is 10).
     mf_class : str, optional
         Membership function class (default is "Gaussian").
     act_output : str, optional
         Activation function for the output layer (default is None).
     vanishing_strategy : str or None, optional
         Strategy for calculating rule strengths (default is None).
+    reg_lambda : float or None, optional
+        Regularization parameter (default is None).
     epochs : int, optional
-        Number of training epochs (default is 1000).
+        Number of epochs for training (default is 1000).
     batch_size : int, optional
-        Batch size used in training (default is 16).
+        Size of the mini-batch during training (default is 16).
     optim : str, optional
-        Optimizer to use, selected from the supported optimizers (default is "Adam").
+        Optimization algorithm (default is "Adam").
     optim_params : dict, optional
-        Parameters for the optimizer, such as learning rate, beta values, etc. (default is None).
+        Additional parameters for the optimizer (default is None).
     early_stopping : bool, optional
-        If True, training will stop early if validation loss does not improve (default is True).
+        Flag to enable early stopping during training (default is True).
     n_patience : int, optional
-        Number of epochs to wait for an improvement in validation loss before stopping (default is 10).
+        Number of epochs to wait for improvement before stopping (default is 10).
     epsilon : float, optional
-        Minimum improvement in validation loss to continue training (default is 0.001).
+        Tolerance for improvement (default is 0.001).
     valid_rate : float, optional
-        Fraction of data to use for validation (default is 0.1).
+        Proportion of data to use for validation (default is 0.1).
     seed : int, optional
-        Seed for random number generation (default is 42).
+        Random seed for reproducibility (default is 42).
     verbose : bool, optional
-        If True, prints training progress and validation loss during training (default is True).
+        Flag to enable verbose output during training (default is True).
 
     Methods
     -------
@@ -279,8 +282,9 @@ class GdAnfisRegressor(BaseGdAnfis, RegressorMixin):
     """
     Adaptive Neuro-Fuzzy Inference System (ANFIS) Regressor for predicting continuous values.
 
-    This class integrates ANFIS with gradient-based optimization techniques for regression tasks, supporting both
-    single-output and multi-output regression.
+    This class integrates Adaptive Neuro-Fuzzy Inference System (ANFIS) with gradient-based optimization
+    techniques for regression tasks. It supports both single-output and multi-output regression, allowing
+    users to perform predictions on continuous target variables.
 
     Attributes
     ----------
@@ -296,13 +300,15 @@ class GdAnfisRegressor(BaseGdAnfis, RegressorMixin):
     Parameters
     ----------
     num_rules : int, optional
-        Number of fuzzy rules (default is 10).
+        Number of fuzzy rules for the ANFIS model (default is 10).
     mf_class : str, optional
         Membership function class (default is "Gaussian").
     act_output : str, optional
         Activation function for the output layer (default is None).
     vanishing_strategy : str or None, optional
         Strategy for calculating rule strengths (default is None).
+    reg_lambda : float or None, optional
+        Regularization parameter (default is None).
     epochs : int, optional
         Number of epochs for training (default is 1000).
     batch_size : int, optional

@@ -4,7 +4,7 @@
 #       Github: https://github.com/thieu1995        %                         
 # --------------------------------------------------%
 
-from banfis import Data, AnfisClassifier
+from banfis import Data, GdAnfisClassifier
 from sklearn.datasets import load_iris
 
 
@@ -26,10 +26,11 @@ data.y_test = scaler_y.transform(data.y_test)
 print(type(data.X_train), type(data.y_train))
 
 ## Create model
-model = AnfisClassifier(num_rules=20, mf_class="Sigmoid", act_output=None, vanishing_strategy="blend",
-                    epochs=50, batch_size=16, optim="Adam", optim_params={"lr": 0.01},
-                    early_stopping=True, n_patience=10, epsilon=0.001, valid_rate=0.1,
-                    seed=42, verbose=True)
+model = GdAnfisClassifier(num_rules=20, mf_class="Sigmoid",
+                          act_output=None, vanishing_strategy="blend", reg_lambda=None,
+                          epochs=50, batch_size=16, optim="Adam", optim_params={"lr": 0.01},
+                          early_stopping=True, n_patience=10, epsilon=0.001, valid_rate=0.1,
+                          seed=42, verbose=True)
 ## Train the model
 model.fit(X=data.X_train, y=data.y_train)
 
