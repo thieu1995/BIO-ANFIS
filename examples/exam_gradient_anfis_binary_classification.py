@@ -4,7 +4,7 @@
 #       Github: https://github.com/thieu1995        %                         
 # --------------------------------------------------%
 
-from banfis import Data, GdAnfisClassifier
+from xanfis import Data, GdAnfisClassifier
 from sklearn.datasets import load_breast_cancer
 
 

@@ -4,7 +4,7 @@
 #       Github: https://github.com/thieu1995        %                         
 # --------------------------------------------------%
 
-from banfis import Data, GdAnfisRegressor
+from xanfis import Data, GdAnfisRegressor
 from sklearn.datasets import load_diabetes
 
 

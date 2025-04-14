@@ -4,7 +4,7 @@
 #       Github: https://github.com/thieu1995        %                         
 # --------------------------------------------------%
 
-from banfis import Data, AnfisClassifier
+from xanfis import Data, AnfisClassifier
 from sklearn.datasets import load_iris
 
 

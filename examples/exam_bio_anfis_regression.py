@@ -5,7 +5,7 @@
 # --------------------------------------------------%
 
 import numpy as np
-from banfis import Data, BioAnfisRegressor
+from xanfis import Data, BioAnfisRegressor
 from sklearn.datasets import load_diabetes
 
 

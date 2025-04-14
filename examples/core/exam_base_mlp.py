@@ -4,7 +4,7 @@
 #       Github: https://github.com/thieu1995        %                         
 # --------------------------------------------------%
 
-from banfis.core.base_mlp import CustomMLP
+from xanfis.core.base_mlp import CustomMLP
 
 
 def check_CustomMLP_class():

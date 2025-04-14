@@ -7,7 +7,7 @@
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.datasets import load_breast_cancer
-from banfis import MhaMlpTuner
+from xanfis import MhaMlpTuner
 
 
 ## Load data object

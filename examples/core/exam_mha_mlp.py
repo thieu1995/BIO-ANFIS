@@ -8,7 +8,7 @@ from sklearn.datasets import load_iris, load_breast_cancer, load_diabetes, make_
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score
-from banfis import MlpClassifier, MlpRegressor, MhaMlpClassifier, MhaMlpRegressor
+from xanfis import MlpClassifier, MlpRegressor, MhaMlpClassifier, MhaMlpRegressor
 
 
 def check_MhaMlpClassifier_multi_class():
