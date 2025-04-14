@@ -63,13 +63,11 @@ Please include these citations if you plan to use this library:
 
 ```code
 
-@software{nguyen_van_thieu_2023_10251022,
+@software{thieu20250414,
   author       = {Nguyen Van Thieu},
   title        = {X-ANFIS: An Extensible and Cross-Learning ANFIS Framework for Machine Learning Tasks},
   month        = april,
   year         = 2025,
-  publisher    = {Zenodo},
-  doi          = {10.5281/zenodo.10251021},
   url          = {https://github.com/thieu1995/X-ANFIS}
 }
 
