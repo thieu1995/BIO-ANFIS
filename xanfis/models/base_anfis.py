@@ -127,7 +127,7 @@ class CustomANFIS(nn.Module):
 
     Example:
         >>> model = CustomANFIS(input_dim=4, num_rules=5, output_dim=3, mf_class="Gaussian",
-                                task="classification", act_output="Softmax", vanishing_strategy="blend")
+        >>>                     task="classification", act_output="Softmax", vanishing_strategy="blend")
         >>> output = model(torch.randn(32, 4))
     """
 
@@ -155,7 +155,7 @@ class CustomANFIS(nn.Module):
     SUPPORTED_VANISHING_STRATEGIES = ["prod", "mean", "blend"]
 
     def __init__(self, input_dim=None, num_rules=None, output_dim=None, mf_class=None,
-                 task="classification", act_output=None, vanishing_strategy=None, reg_lambda=None,
+                 task="classification", act_output=None, vanishing_strategy="prod", reg_lambda=None,
                  seed=None, **kwargs):
         """
         Initialize a customizable multi-layer perceptron (ANFIS) model.
@@ -423,11 +423,11 @@ class BaseAnfis(BaseEstimator):
         The membership function class to use. Can be a string name of a predefined MF type or a custom MF instance.
     task : str, optional (default="classification")
         Type of supervised learning task. One of {"classification", "binary_classification", "regression"}.
-    act_output : str or None, optional
-        Output activation function. If None, will be inferred based on task type.
     vanishing_strategy : str or None, optional
         Strategy to handle vanishing gradients when combining membership values.
-        Can be one of {"prod", "mean", "blend"}.
+        Can be one of {"prod", "mean", "blend"}. default='prod')
+    act_output : str or None, optional
+        Output activation function. If None, will be inferred based on task type.
     reg_lambda : float or None, optional (default=0.0)
         Regularization term used when solving for consequent parameters via least squares.
     seed : int or None, optional
@@ -456,8 +456,8 @@ class BaseAnfis(BaseEstimator):
     SUPPORTED_CLS_METRICS = get_all_classification_metrics()
     SUPPORTED_REG_METRICS = get_all_regression_metrics()
 
-    def __init__(self, num_rules, mf_class, task="classification", act_output=None,
-                 vanishing_strategy=None, reg_lambda=None, seed=None):
+    def __init__(self, num_rules, mf_class, task="classification", vanishing_strategy="prod",
+                 act_output=None, reg_lambda=None, seed=None):
         self.num_rules = num_rules
         self.mf_class = mf_class
         self.task = task
@@ -729,10 +729,11 @@ class BaseClassicAnfis(BaseAnfis):
         Number of fuzzy rules in the ANFIS model.
     mf_class : str, default="Gaussian"
         Type of membership function to use (e.g., "Gaussian", "Triangular").
+    vanishing_strategy : str or None, optional
+        Strategy to handle vanishing gradients when combining membership values.
+        Can be one of {"prod", "mean", "blend"}. default='prod')
     act_output : callable or None, default=None
         Activation function to apply to the output layer (e.g., softmax for classification).
-    vanishing_strategy : str or None, optional
-        Strategy to handle vanishing gradients (if applicable).
     reg_lambda : float or None, optional
         L2 regularization strength. If None, regularization is disabled.
     epochs : int, default=1000
@@ -774,15 +775,15 @@ class BaseClassicAnfis(BaseAnfis):
         "RAdam", "RMSprop", "Rprop", "SGD", "SparseAdam",
     ]
 
-    def __init__(self, num_rules=10, mf_class="Gaussian", act_output=None, vanishing_strategy=None,
+    def __init__(self, num_rules=10, mf_class="Gaussian", vanishing_strategy="prod", act_output=None,
                  reg_lambda=None, epochs=1000, batch_size=16, optim="Adam", optim_params=None,
                  early_stopping=True, n_patience=10, epsilon=0.001, valid_rate=0.1,
                  seed=42, verbose=True):
         """
         Initialize the ANFIS with user-defined architecture, training parameters, and optimization settings.
         """
-        super().__init__(num_rules, mf_class, "classification", act_output=act_output,
-                         vanishing_strategy=vanishing_strategy, reg_lambda=reg_lambda, seed=seed)
+        super().__init__(num_rules, mf_class, "classification", vanishing_strategy=vanishing_strategy,
+                         act_output=act_output, reg_lambda=reg_lambda, seed=seed)
         self.epochs = epochs
         self.batch_size = batch_size
         self.optim = optim
@@ -819,7 +820,7 @@ class BaseClassicAnfis(BaseAnfis):
 
         # Define model, optimizer, and loss criterion based on task
         self.network = CustomANFIS(self.size_input, self.num_rules, self.size_output, self.mf_class,
-                                   self.task, self.act_output, self.vanishing_strategy, self.reg_lambda, self.seed)
+                                   self.task, self.vanishing_strategy, self.act_output, self.reg_lambda, self.seed)
         # Freeze consequent parameters during GD
         params = [p for name, p in self.network.named_parameters() if 'coeffs' not in name]
         self.optimizer = getattr(torch.optim, self.optim)(params, **self.optim_params)
@@ -928,6 +929,127 @@ class BaseClassicAnfis(BaseAnfis):
 
 
 class BaseGdAnfis(BaseAnfis):
+    """
+    A gradient-based Adaptive Neuro-Fuzzy Inference System (ANFIS) base class using PyTorch.
+
+    This class supports training an ANFIS model using various gradient descent optimizers
+    provided by PyTorch. It includes options for early stopping, regularization, and model
+    validation.
+
+    Attributes
+    ----------
+    SUPPORTED_OPTIMIZERS : list of str
+        List of supported PyTorch optimizer names.
+
+    epochs : int
+        Number of training epochs.
+
+    batch_size : int
+        Mini-batch size used for gradient-based optimization.
+
+    optim : str
+        Name of the optimizer to use (must be in SUPPORTED_OPTIMIZERS).
+
+    optim_params : dict
+        Parameters to initialize the optimizer.
+
+    early_stopping : bool
+        Whether to apply early stopping during training.
+
+    n_patience : int
+        Number of epochs with no improvement after which training is stopped.
+
+    epsilon : float
+        Minimum change in the monitored loss to qualify as an improvement.
+
+    valid_rate : float
+        Proportion of the training data to be used for validation.
+
+    verbose : bool
+        Whether to print logs during training.
+
+    size_input : int
+        Number of input features (set during data processing).
+
+    size_output : int
+        Number of output features (set during data processing).
+
+    network : CustomANFIS
+        The ANFIS model instance.
+
+    optimizer : torch.optim.Optimizer
+        The PyTorch optimizer instance.
+
+    criterion : torch.nn.Module
+        Loss function used for training.
+
+    patience_count : int or None
+        Counter for tracking early stopping patience.
+
+    valid_mode : bool
+        Whether validation mode is enabled.
+
+    early_stopper : EarlyStopper or None
+        Instance managing early stopping logic.
+
+    Parameters
+    ----------
+    num_rules : int, optional
+        Number of fuzzy rules (default is 10).
+
+    mf_class : str, optional
+        Type of membership function to use (default is "Gaussian").
+
+    vanishing_strategy : str, optional
+        Strategy to compute rule strengths (to avoid gradient vanishing too), e.g., "prod" or "min" (default is "prod").
+
+    act_output : callable or None, optional
+        Activation function for the output layer (default is None).
+
+    reg_lambda : float or None, optional
+        Regularization parameter for L2 loss (default is None).
+
+    epochs : int, optional
+        Number of training epochs (default is 1000).
+
+    batch_size : int, optional
+        Batch size for training (default is 16).
+
+    optim : str, optional
+        Optimizer name from SUPPORTED_OPTIMIZERS (default is "Adam").
+
+    optim_params : dict or None, optional
+        Parameters for optimizer initialization (default is None).
+
+    early_stopping : bool, optional
+        Enable or disable early stopping (default is True).
+
+    n_patience : int, optional
+        Patience threshold for early stopping (default is 10).
+
+    epsilon : float, optional
+        Minimum improvement threshold for early stopping (default is 0.001).
+
+    valid_rate : float, optional
+        Validation split ratio from training data (default is 0.1).
+
+    seed : int, optional
+        Random seed for reproducibility (default is 42).
+
+    verbose : bool, optional
+        Enable verbose output (default is True).
+
+    Methods
+    -------
+    build_model():
+        Build and initialize the ANFIS network, optimizer, and loss function.
+
+    process_data(X, y, **kwargs):
+        Prepares input features and targets for training (to be implemented in subclass).
+
+    _fit(data, **kwargs):
+        Trains the ANFIS model using mini-batch gradient descent and early stopping.
+    """
 
     SUPPORTED_OPTIMIZERS = [
         "Adafactor", "Adadelta", "Adagrad", "Adam",
@@ -935,15 +1057,15 @@ class BaseGdAnfis(BaseAnfis):
         "RAdam", "RMSprop", "Rprop", "SGD", "SparseAdam",
     ]
 
-    def __init__(self, num_rules=10, mf_class="Gaussian", act_output=None, vanishing_strategy=None,
+    def __init__(self, num_rules=10, mf_class="Gaussian", vanishing_strategy="prod", act_output=None,
                  reg_lambda=None, epochs=1000, batch_size=16, optim="Adam", optim_params=None,
                  early_stopping=True, n_patience=10, epsilon=0.001, valid_rate=0.1,
                  seed=42, verbose=True):
         """
         Initialize the ANFIS with user-defined architecture, training parameters, and optimization settings.
         """
-        super().__init__(num_rules, mf_class, "classification", act_output=act_output,
-                         vanishing_strategy=vanishing_strategy, reg_lambda=reg_lambda, seed=seed)
+        super().__init__(num_rules, mf_class, "classification", vanishing_strategy=vanishing_strategy,
+                         act_output=act_output, reg_lambda=reg_lambda, seed=seed)
         self.epochs = epochs
         self.batch_size = batch_size
         self.optim = optim
@@ -977,7 +1099,7 @@ class BaseGdAnfis(BaseAnfis):
 
         # Define model, optimizer, and loss criterion based on task
         self.network = CustomANFIS(self.size_input, self.num_rules, self.size_output, self.mf_class,
-                                   self.task, self.act_output, self.vanishing_strategy, self.reg_lambda, self.seed)
+                                   self.task, self.vanishing_strategy, self.act_output, self.reg_lambda, self.seed)
         self.optimizer = getattr(torch.optim, self.optim)(self.network.parameters(), **self.optim_params)
 
         # Select loss function based on task type
@@ -1070,69 +1192,70 @@ class BaseGdAnfis(BaseAnfis):
 
 class BaseBioAnfis(BaseAnfis):
     """
-    A Gradient Descent-based ANFIS (Adaptive Neuro-Fuzzy Inference System) model for classification or regression tasks.
+    Base class for biologically-inspired ANFIS models using metaheuristic optimization.
 
-    This class supports end-to-end training using only gradient descent (no hybrid learning),
-    and includes features such as early stopping, configurable optimizers, L2 regularization,
-    and support for validation data.
+    This class serves as a base for integrating Adaptive Neuro-Fuzzy Inference Systems (ANFIS)
+    with metaheuristic algorithms (e.g., Genetic Algorithm, PSO, etc.) to optimize membership function
+    parameters and rule weights. The consequent parameters are learned using Least Squares Estimation (LSE)
+    in a hybrid-learning manner.
 
     Attributes
     ----------
     SUPPORTED_OPTIMIZERS : list of str
-        A list of supported PyTorch optimizer names.
-
-    epochs : int
-        Number of training epochs.
-
-    batch_size : int
-        Batch size for training.
-
+        List of supported optimizer names from the Mealpy library.
+    SUPPORTED_CLS_OBJECTIVES : dict
+        Dictionary of supported classification metrics from the `permetrics` library.
+    SUPPORTED_REG_OBJECTIVES : dict
+        Dictionary of supported regression metrics from the `permetrics` library.
     optim : str
-        Name of the optimizer to use.
-
+        Name of the metaheuristic optimizer used.
     optim_params : dict
-        Dictionary of optimizer parameters such as learning rate.
-
-    early_stopping : bool
-        Whether to apply early stopping during training.
-
-    n_patience : int
-        Number of epochs with no improvement after which training is stopped.
-
-    epsilon : float
-        Minimum improvement threshold to consider as a performance gain.
-
-    valid_rate : float
-        Fraction of training data to be used for validation.
-
+        Hyperparameters for the selected optimizer.
     verbose : bool
-        Whether to print training progress.
-
-    size_input : int or None
-        Dimensionality of input features (set during data preparation).
-
-    size_output : int or None
-        Dimensionality of the output layer (set during data preparation).
-
+        Whether to print logs during training.
+    size_input : int
+        Number of input features (set during model build).
+    size_output : int
+        Number of output neurons (set during model build).
     network : CustomANFIS
-        The instantiated ANFIS model.
+        The core ANFIS network module.
+    optimizer : Optimizer
+        Metaheuristic optimizer instance.
+    obj_name : str
+        Name of the optimization objective function.
+    metric_class : permetrics object
+        Metric computation class for evaluating performance.
 
-    optimizer : torch.optim.Optimizer
-        The optimizer instance.
+    Methods
+    -------
+    set_optim_and_paras(optim, optim_params)
+        Sets the optimizer name and parameters.
+    build_model()
+        Constructs the ANFIS network and optimizer instance.
+    get_name()
+        Returns the name of the model based on optimizer settings.
+    _set_optimizer(optim, optim_params)
+        Internal method to initialize the optimizer.
+    _set_lb_ub(lb, ub, n_dims)
+        Validates and formats lower and upper bounds for optimization.
+    objective_function(solution)
+        Computes the loss/fitness value for a given solution vector.
+    _fit(data, lb, ub, mode, n_workers, termination, save_population, **kwargs)
+        Trains the ANFIS model using a metaheuristic-based optimization strategy.
 
-    criterion : torch.nn.Module
-        The loss function based on task type.
-
-    early_stopper : EarlyStopper or None
-        Instance to monitor early stopping criteria.
+    Notes
+    -----
+    - This class supports hybrid learning by combining metaheuristics and LSE.
+    - Intended to be extended by specific regressors/classifiers in the library.
+    - Requires `CustomANFIS`, `Optimizer` from `mealpy`, and metrics from `permetrics`.
     """
 
     SUPPORTED_OPTIMIZERS = list(get_all_optimizers().keys())
     SUPPORTED_CLS_OBJECTIVES = get_all_classification_metrics()
     SUPPORTED_REG_OBJECTIVES = get_all_regression_metrics()
 
-    def __init__(self, num_rules=10, mf_class="Gaussian", act_output=None, vanishing_strategy=None, reg_lambda=None,
-                 optim="BaseGA", optim_params=None, obj_name=None, seed=42, verbose=True):
+    def __init__(self, num_rules=10, mf_class="Gaussian", vanishing_strategy="prod", act_output=None,
+                 reg_lambda=None, optim="BaseGA", optim_params=None, obj_name=None, seed=42, verbose=True):
         """
         Initialize the BaseGdAnfis model with user-defined architecture and training configurations.
 
@@ -1142,10 +1265,10 @@ class BaseBioAnfis(BaseAnfis):
             Number of fuzzy rules in the ANFIS network.
         mf_class : str, default="Gaussian"
             Type of membership function to use.
-        act_output : callable or None, default=None
-            Activation function applied at the output layer.
         vanishing_strategy : str or None, optional
             Strategy for handling vanishing gradients (if any).
+        act_output : callable or None, default=None
+            Activation function applied at the output layer.
         reg_lambda : float or None, optional
             L2 regularization strength; set None to disable.
         epochs : int, default=1000
@@ -1169,8 +1292,8 @@ class BaseBioAnfis(BaseAnfis):
         verbose : bool, default=True
             Whether to print training logs per epoch.
         """
-        super().__init__(num_rules, mf_class, "classification", act_output=act_output,
-                         vanishing_strategy=vanishing_strategy, reg_lambda=reg_lambda, seed=seed)
+        super().__init__(num_rules, mf_class, "classification", vanishing_strategy=vanishing_strategy,
+                         act_output=act_output, reg_lambda=reg_lambda, seed=seed)
         self.optim = optim
         self.optim_params = optim_params
         self.verbose = verbose
@@ -1264,7 +1387,7 @@ class BaseBioAnfis(BaseAnfis):
         - Prepares early stopping monitor if enabled.
         """
         self.network = CustomANFIS(self.size_input, self.num_rules, self.size_output, self.mf_class, self.task,
-                                   self.act_output, self.vanishing_strategy, self.reg_lambda, self.seed)
+                                   self.vanishing_strategy, self.act_output, self.reg_lambda, self.seed)
 
         self.optimizer = self._set_optimizer(self.optim, self.optim_params)
 
