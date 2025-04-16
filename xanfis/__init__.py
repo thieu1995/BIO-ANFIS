@@ -4,7 +4,7 @@
 #       Github: https://github.com/thieu1995        %                         
 # --------------------------------------------------%
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 
 from xanfis.helpers.membership_family import *
 from xanfis.helpers.preprocessor import Data, DataTransformer

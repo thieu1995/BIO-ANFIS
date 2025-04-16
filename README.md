@@ -8,11 +8,11 @@
 [![Downloads](https://pepy.tech/badge/xanfis)](https://pepy.tech/project/xanfis)
 [![Tests & Publishes to PyPI](https://github.com/thieu1995/X-ANFIS/actions/workflows/publish-package.yaml/badge.svg)](https://github.com/thieu1995/X-ANFIS/actions/workflows/publish-package.yaml)
 ![GitHub Release Date](https://img.shields.io/github/release-date/thieu1995/X-ANFIS.svg)
-[![Documentation Status](https://readthedocs.org/projects/xanfis/badge/?version=latest)](https://xanfis.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/xanfis/badge/?version=latest)](https://x-anfis.readthedocs.io/en/latest/?badge=latest)
 [![Chat](https://img.shields.io/badge/Chat-on%20Telegram-blue)](https://t.me/+fRVCJGuGJg1mNDg1)
 ![GitHub contributors](https://img.shields.io/github/contributors/thieu1995/X-ANFIS.svg)
 [![GitTutorial](https://img.shields.io/badge/PR-Welcome-%23FF8300.svg?)](https://git-scm.com/book/en/v2/GitHub-Contributing-to-a-Project)
-[![DOI](https://zenodo.org/badge/676088001.svg)](https://zenodo.org/doi/10.5281/zenodo.10251021)
+[![DOI](https://img.shields.io/badge/DOI-10.6084%2Fm9.figshare.28802531-blue)](https://doi.org/10.6084/m9.figshare.28802531)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 
@@ -52,7 +52,7 @@ The library is written with object-oriented principles and modular architecture,
   * Differential Evolution (DE) and more
 * **Supported loss functions**: MSE, MAE, RMSE, MAPE, R2, R2S, NSE, KGE, and more
 * **Supported performance metrics**: >= 67 (47 regressions and 20 classifications)
-* **Documentation:** https://xanfis.readthedocs.io
+* **Documentation:** https://x-anfis.readthedocs.io
 * **Python versions:** >= 3.8.x
 * **Dependencies:** numpy, scipy, scikit-learn, pandas, mealpy, permetrics, torch
 
@@ -62,12 +62,12 @@ The library is written with object-oriented principles and modular architecture,
 Please include these citations if you plan to use this library:
 
 ```code
-
 @software{thieu20250414,
   author       = {Nguyen Van Thieu},
   title        = {X-ANFIS: An Extensible and Cross-Learning ANFIS Framework for Machine Learning Tasks},
   month        = april,
   year         = 2025,
+  doi         = {10.6084/m9.figshare.28802531},
   url          = {https://github.com/thieu1995/X-ANFIS}
 }
 
@@ -92,16 +92,16 @@ The structure and idea of this library is followed:
 
 ```code
 CustomANFIS (torch.nn.Module)
- └── BaseAnfis (Scikit-learn BaseEstimator)
-     ├── BaseClassicAnfis
-     │   ├── AnfisRegressor
-     │   └── AnfisClassifier
-     ├── BaseGdAnfis
-     │   ├── GdAnfisRegressor
-     │   └── GdAnfisClassifier
-     └── BaseBioAnfis
-         ├── BioAnfisRegressor
-         └── BioAnfisClassifier
+BaseAnfis (Scikit-learn BaseEstimator)
+ ├── BaseClassicAnfis
+ │   ├── AnfisRegressor
+ │   └── AnfisClassifier
+ ├── BaseGdAnfis
+ │   ├── GdAnfisRegressor
+ │   └── GdAnfisClassifier
+ └── BaseBioAnfis
+     ├── BioAnfisRegressor
+     └── BioAnfisClassifier
 
 .CustomANFIS class: Define general Pytorch model
 
@@ -210,7 +210,7 @@ the repository, create a pull request, or open an issue.
 ### Official Links 
 
 * Official source code repo: https://github.com/thieu1995/X-ANFIS
-* Official document: https://xanfis.readthedocs.io/
+* Official document: https://x-anfis.readthedocs.io/
 * Download releases: https://pypi.org/project/xanfis/
 * Issue tracker: https://github.com/thieu1995/X-ANFIS/issues
 * Notable changes log: https://github.com/thieu1995/X-ANFIS/blob/master/ChangeLog.md

@@ -15,7 +15,7 @@ def readme():
 
 setup(
     name="xanfis",
-    version="0.1.0",
+    version="1.0.0",
     author="Thieu",
     author_email="nguyenthieu2102@gmail.com",
     description="X-ANFIS: An Extensible and Cross-Learning ANFIS Framework for Machine Learning Tasks",
@@ -41,7 +41,7 @@ setup(
     ],
     url="https://github.com/thieu1995/X-ANFIS",
     project_urls={
-        'Documentation': 'https://xanfis.readthedocs.io/',
+        'Documentation': 'https://x-anfis.readthedocs.io/',
         'Source Code': 'https://github.com/thieu1995/X-ANFIS',
         'Bug Tracker': 'https://github.com/thieu1995/X-ANFIS/issues',
         'Change Log': 'https://github.com/thieu1995/X-ANFIS/blob/main/ChangeLog.md',
