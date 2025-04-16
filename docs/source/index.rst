@@ -34,7 +34,7 @@ Welcome to XANFIS's documentation!
    :target: https://img.shields.io/github/release-date/thieu1995/X-ANFIS.svg
 
 .. image:: https://readthedocs.org/projects/xanfis/badge/?version=latest
-   :target: https://xanfis.readthedocs.io/en/latest/?badge=latest
+   :target: https://x-anfis.readthedocs.io/en/latest/?badge=latest
 
 .. image:: https://img.shields.io/badge/Chat-on%20Telegram-blue
    :target: https://t.me/+fRVCJGuGJg1mNDg1
@@ -45,8 +45,8 @@ Welcome to XANFIS's documentation!
 .. image:: https://img.shields.io/badge/PR-Welcome-%23FF8300.svg?
    :target: https://git-scm.com/book/en/v2/GitHub-Contributing-to-a-Project
 
-.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.10067995.svg
-   :target: https://doi.org/10.5281/zenodo.10067995
+.. image:: https://img.shields.io/badge/DOI-10.6084%2Fm9.figshare.28802531-blue
+   :target: https://doi.org/10.6084/m9.figshare.28802531
 
 .. image:: https://img.shields.io/badge/License-GPLv3-blue.svg
    :target: https://www.gnu.org/licenses/gpl-3.0
@@ -64,7 +64,7 @@ and even bio-inspired methods.
 * **Supported Learning Strategies**: Hybrid (GD + LSE), Gradient-only, Bio-inspired (Bio + LSE)
 * **Supported performance metrics**: >= 67 (47 regressions and 20 classifications)
 * **Supported objective functions (as fitness functions or loss functions)**: >= 67 (47 regressions and 20 classifications)
-* **Documentation:** https://xanfis.readthedocs.io
+* **Documentation:** https://x-anfis.readthedocs.io
 * **Python versions:** >= 3.8.x
 * **Dependencies:** numpy, scipy, scikit-learn, pandas, mealpy, permetrics, torch
 

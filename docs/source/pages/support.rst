@@ -9,6 +9,7 @@ Please include these citations if you plan to use this library::
         title        = {X-ANFIS: An Extensible and Cross-Learning ANFIS Framework for Machine Learning Tasks},
         month        = april,
         year         = 2025,
+        doi         = {10.6084/m9.figshare.28802531},
         url          = {https://github.com/thieu1995/X-ANFIS}
     }
 
@@ -29,7 +30,7 @@ Important links
 ===============
 
 * Official source code repo: https://github.com/thieu1995/X-ANFIS
-* Official document: https://xanfis.readthedocs.io/
+* Official document: https://x-anfis.readthedocs.io/
 * Download releases: https://pypi.org/project/xanfis/
 * Issue tracker: https://github.com/thieu1995/X-ANFIS/issues
 * Notable changes log: https://github.com/thieu1995/X-ANFIS/blob/main/ChangeLog.md
