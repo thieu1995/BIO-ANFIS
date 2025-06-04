@@ -113,9 +113,9 @@ class BioAnfisClassifier(BaseBioAnfis, ClassifierMixin):
             Training data.
         y : array-like, shape (n_samples,)
             Target values.
-        lb : tuple, optional
+        lb : int, float, list, tuple, np.ndarray, optional.
             Lower bounds for optimization (default is (-1.0,)).
-        ub : tuple, optional
+        ub : int, float, list, tuple, np.ndarray, optional.
             Upper bounds for optimization (default is (1.0,)).
         mode : str, optional
             Mode for optimization (default is 'single').
