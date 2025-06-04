@@ -14,7 +14,7 @@ with open("requirements.txt") as f:
 
 
 def get_version():
-    init_path = os.path.join(os.path.dirname(__file__), 'mafese', '__init__.py')
+    init_path = os.path.join(os.path.dirname(__file__), 'xanfis', '__init__.py')
     with open(init_path, 'r', encoding='utf-8') as f:
         init_content = f.read()
     version_match = re.search(r"^__version__ = ['\"]([^'\"]+)['\"]", init_content, re.M)
