@@ -1,154 +1,99 @@
+# X-ANFIS: Modular ANFIS Library with Classic, Gradient, and Bio-inspired Training Strategies
 
-[![GitHub release](https://img.shields.io/badge/release-1.0.0-yellow.svg)](https://github.com/thieu1995/X-ANFIS/releases)
+[![GitHub release](https://img.shields.io/badge/release-1.0.1-yellow.svg)](https://github.com/thieu1995/X-ANFIS/releases)
 [![Wheel](https://img.shields.io/pypi/wheel/gensim.svg)](https://pypi.python.org/pypi/xanfis) 
 [![PyPI version](https://badge.fury.io/py/xanfis.svg)](https://badge.fury.io/py/xanfis)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/xanfis.svg)
-![PyPI - Status](https://img.shields.io/pypi/status/xanfis.svg)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/xanfis.svg)
 [![Downloads](https://pepy.tech/badge/xanfis)](https://pepy.tech/project/xanfis)
 [![Tests & Publishes to PyPI](https://github.com/thieu1995/X-ANFIS/actions/workflows/publish-package.yaml/badge.svg)](https://github.com/thieu1995/X-ANFIS/actions/workflows/publish-package.yaml)
-![GitHub Release Date](https://img.shields.io/github/release-date/thieu1995/X-ANFIS.svg)
 [![Documentation Status](https://readthedocs.org/projects/xanfis/badge/?version=latest)](https://x-anfis.readthedocs.io/en/latest/?badge=latest)
 [![Chat](https://img.shields.io/badge/Chat-on%20Telegram-blue)](https://t.me/+fRVCJGuGJg1mNDg1)
-![GitHub contributors](https://img.shields.io/github/contributors/thieu1995/X-ANFIS.svg)
-[![GitTutorial](https://img.shields.io/badge/PR-Welcome-%23FF8300.svg?)](https://git-scm.com/book/en/v2/GitHub-Contributing-to-a-Project)
 [![DOI](https://img.shields.io/badge/DOI-10.6084%2Fm9.figshare.28802531-blue)](https://doi.org/10.6084/m9.figshare.28802531)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
+---
 
-# X-ANFIS (Modular ANFIS Library with Classic, Gradient, and Bio-inspired Training Strategies)
+**X-ANFIS** is a Python library offering a powerful and extensible implementation of Adaptive Neuro-Fuzzy Inference System (ANFIS) 
+using **PyTorch** and **Scikit-Learn**. The library is written with object-oriented principles and modular architecture, 
+enabling easy customization, integration, and experimentation.It supports:
 
-X-ANFIS is a Python library that provides a flexible and extensible implementation of Adaptive Neuro-Fuzzy 
-Inference System (ANFIS) models using PyTorch and Scikit-Learn APIs. The library supports multiple training strategies including:
+- 🔧 **Classic ANFIS** (Hybrid: Gradient Descent + Least Squares)
+- 🌊 **Gradient-based ANFIS** (Fully differentiable training)
+- 🧠 **Bio-inspired ANFIS** (Metaheuristics + Least Squares)
 
-* Classic ANFIS with hybrid learning (Gradient Descent + Least Squares Estimation)
+## ✨ Key Features
 
-* Gradient-based ANFIS (fully end-to-end gradient training)
+- Modular, object-oriented design for ease of extension.
+- **Scikit-Learn API:** `.fit()`, `.predict()`, `.score()` and compatible with `GridSearchCV`, `Pipeline`, etc.
+- Wide range of Gradient-based training optimizers: `SGD`, `Adam`, `RMSprop`, `Adagrad`, `AdamW`, ...
+- Wide range of Bio-inspired optimizers: `GA`, `PSO`, `ACO`, `WOA`, `BA`, `FFA`, `CSA`, `GWO`, `ABC`, `DE`, ...
+- Rich membership functions: `Triangular`, `Gaussian`, `Bell`, ...
+- Over 67 built-in metrics and losses.
 
-* Bio-inspired ANFIS (Bio-inspired algorithms + Least Squares Estimation)
+## 🧠 Model Zoo
 
-The library is written with object-oriented principles and modular architecture, enabling easy customization, integration, and experimentation.
-
-
-* **Free software:** GNU General Public License (GPL) V3 license
-* **Provided Estimator**: 
-  * Traditional models: AnfisRegressor, AnfisClassifier
-  * Full GD-based models: GdAnfisRegressor, GdAnfisClassifier
-  * Bio-based models: BioAnfisRegressor, BioAnfisClassifier
-* **Supported Membership Functions**: Triangular, Gaussian, Bell, and more
-* **Scikit-Learn Compatible**: Supports .fit(), .predict(), .score() and works with GridSearchCV, Pipeline, etc.
-* **Supported optimizers**: SGD, Adam, RMSprop, Adagrad, Adadelta, AdamW, and more
-* **Supported activation functions**: ELU, SELU, GELU, ReLU, LeakyReLU, Sigmoid, Tanh, Softmax, and more
-* **Supported optimizers for bio-based models**: 
-  * Genetic Algorithm (GA)
-  * Particle Swarm Optimization (PSO)
-  * Ant Colony Optimization (ACO)
-  * Whale Optimization Algorithm (WOA)
-  * Bat Algorithm (BA)
-  * Firefly Algorithm (FFA)
-  * Cuckoo Search Algorithm (CSA)
-  * Grey Wolf Optimizer (GWO)
-  * Artificial Bee Colony (ABC)
-  * Differential Evolution (DE) and more
-* **Supported loss functions**: MSE, MAE, RMSE, MAPE, R2, R2S, NSE, KGE, and more
-* **Supported performance metrics**: >= 67 (47 regressions and 20 classifications)
-* **Documentation:** https://x-anfis.readthedocs.io
-* **Python versions:** >= 3.8.x
-* **Dependencies:** numpy, scipy, scikit-learn, pandas, mealpy, permetrics, torch
+| Model Class                               | Training Method     | Type                        |
+|-------------------------------------------|---------------------|-----------------------------|
+| `AnfisRegressor`, `AnfisClassifier`       | Classic Hybrid      | Regression / Classification |
+| `GdAnfisRegressor`, `GdAnfisClassifier`   | Gradient-based      | Regression / Classification |
+| `BioAnfisRegressor`, `BioAnfisClassifier` | Metaheuristic-based | Regression / Classification | 
 
 
-# Citation Request
+## 📌 Citation
 
 Please include these citations if you plan to use this library:
 
-```code
+```bibtex
 @software{thieu20250414,
-  author       = {Nguyen Van Thieu},
-  title        = {X-ANFIS: An Extensible and Cross-Learning ANFIS Framework for Machine Learning Tasks},
-  month        = april,
-  year         = 2025,
-  doi         = {10.6084/m9.figshare.28802531},
-  url          = {https://github.com/thieu1995/X-ANFIS}
+  author  = {Nguyen Van Thieu},
+  title   = {X-ANFIS: An Extensible and Cross-Learning ANFIS Framework for Machine Learning Tasks},
+  month   = april,
+  year    = 2025,
+  doi     = {10.6084/m9.figshare.28802531},
+  url     = {https://github.com/thieu1995/X-ANFIS}
 }
 
 @article{van2023mealpy,
-  title={MEALPY: An open-source library for latest meta-heuristic algorithms in Python},
-  author={Van Thieu, Nguyen and Mirjalili, Seyedali},
-  journal={Journal of Systems Architecture},
-  year={2023},
-  publisher={Elsevier},
-  doi={10.1016/j.sysarc.2023.102871}
+  title   = {MEALPY: An open-source library for latest meta-heuristic algorithms in Python},
+  author  = {Van Thieu, Nguyen and Mirjalili, Seyedali},
+  journal = {Journal of Systems Architecture},
+  year    = {2023},
+  publisher = {Elsevier},
+  doi     = {10.1016/j.sysarc.2023.102871}
 }
 ```
 
-# General tutorial
+# ⚙️ General tutorial
 
 Below tutorial is how you can install and use this library. For more complex examples and documentation 
 please check the [examples](examples) folder and documentation website.
 
 
-### The OOP structure idea
-The structure and idea of this library is followed:
+## 📦 Installation
 
-```code
-CustomANFIS (torch.nn.Module)
-BaseAnfis (Scikit-learn BaseEstimator)
- ├── BaseClassicAnfis
- │   ├── AnfisRegressor
- │   └── AnfisClassifier
- ├── BaseGdAnfis
- │   ├── GdAnfisRegressor
- │   └── GdAnfisClassifier
- └── BaseBioAnfis
-     ├── BioAnfisRegressor
-     └── BioAnfisClassifier
+Install the latest version using pip:
 
-.CustomANFIS class: Define general Pytorch model
-
-.BaseAnfis class: Inherit BaseEstimator from Scikit-Learn
-
-.BaseClassicAnfis: Inherit BaseAnfis class, this is classical (traditional) ANFIS model
-  + Purpose: Gradient-based training for membership parameters, and Pseudo-inverse and Ridge regresison for consequent (output weights)
-  + AnfisRegressor: Inherit BaseClassicAnfis and RegressorMixin classes, ANFIS wrapper for regression tasks
-  + AnfisClassifier: Inherit BaseClassicAnfis and ClassifierMixin classes, ANFIS wrapper for classification tasks
-
-.BaseGdAnfis: Inherit BaseAnfis class, this is gradient-based ANFIS model
-  + Purpose: Gradient-based training for both membership parameters and consequent (output weights)
-  + GdAnfisRegressor: Inherit BaseGdAnfis and RegressorMixin classes, ANFIS wrapper for regression tasks
-  + GdAnfisClassifier: Inherit BaseGdAnfis and ClassifierMixin classes, ANFIS wrapper for classification tasks
-
-.BaseBioAnfis: Inherit BaseAnfis class, this is bio-inspired ANFIS model
-  + Purpose: Bio-inspired training for both membership parameters and Psedo-inverse and Ridge regresison for consequent (output weights)
-  + BioAnfisRegressor: Inherit BaseBioAnfis and RegressorMixin classes, ANFIS wrapper for regression tasks
-  + BioAnfisClassifier: Inherit BaseBioAnfis and ClassifierMixin classes, ANFIS wrapper for classification tasks
+```bash
+pip install xanfis
 ```
 
-### Installation
+After that, check the version to ensure successful installation:
 
-* Install the [current PyPI release](https://pypi.python.org/pypi/xanfis):
-```sh 
-$ pip install xanfis
-```
-
-### Check version
-
-After installation, you can import X-ANFIS as any other Python module:
-
-```sh
+```bash
 $ python
 >>> import xanfis
 >>> xanfis.__version__
 ```
 
 
-### General example
+## 🧪 Quick Example
 
 Let's say I want to use Adam optimization-based ANFIS for Iris classification dataset. Here how to do it.
 
 ```python
 from xanfis import Data, GdAnfisClassifier
 from sklearn.datasets import load_iris
-
 
 ## Load data object
 X, y = load_iris(return_X_y=True)
@@ -185,12 +130,11 @@ print(model.predict_proba(data.X_test))
 print(model.evaluate(y_true=data.y_test, y_pred=y_pred, list_metrics=["F2S", "CKS", "FBS", "PS", "RS", "NPV", "F1S"]))
 ```
 
-As can be seen, you do it like any model from Scikit-Learn library such as SVC, RF, DT,...
 
+## 💬 Contributing
 
-# Support (questions, problems)
-
-### Customization
+We welcome contributions to X-ANFIS! If you have suggestions, improvements, or bug fixes, feel free to fork 
+the repository, create a pull request, or open an issue.
 
 X-ANFIS allows for customization at various levels, including:
 
@@ -202,28 +146,31 @@ X-ANFIS allows for customization at various levels, including:
 output activation function, number of rules, and rule strengths, L2 regularization, training methods.
 
 
-### Contributing
-We welcome contributions to X-ANFIS! If you have suggestions, improvements, or bug fixes, feel free to fork 
-the repository, create a pull request, or open an issue.
+## 📞 Community & Support
+
+- 📖 [Official Source Code](https://github.com/thieu1995/X-ANFIS)
+- 📖 [Official Releases](https://pypi.org/project/xanfis/)
+- 📖 [Official Docs](https://x-anfis.readthedocs.io/)
+- 💬 [Telegram Chat](https://t.me/+fRVCJGuGJg1mNDg1)
+- 🐛 [Report Issues](https://github.com/thieu1995/X-ANFIS/issues)
+- 🔄 [Changelog](https://github.com/thieu1995/X-ANFIS/blob/master/ChangeLog.md)
 
 
-### Official Links 
+## 🧩 Related Projects
 
-* Official source code repo: https://github.com/thieu1995/X-ANFIS
-* Official document: https://x-anfis.readthedocs.io/
-* Download releases: https://pypi.org/project/xanfis/
-* Issue tracker: https://github.com/thieu1995/X-ANFIS/issues
-* Notable changes log: https://github.com/thieu1995/X-ANFIS/blob/master/ChangeLog.md
-* Official chat group: https://t.me/+fRVCJGuGJg1mNDg1
+Explore other projects by the author:
 
-* This project also related to our another projects which are "optimization" and "machine learning", check it here:
-    * https://github.com/thieu1995/mealpy
-    * https://github.com/thieu1995/metaheuristics
-    * https://github.com/thieu1995/opfunu
-    * https://github.com/thieu1995/enoppy
-    * https://github.com/thieu1995/permetrics
-    * https://github.com/thieu1995/MetaCluster
-    * https://github.com/thieu1995/pfevaluator
-    * https://github.com/thieu1995/IntelELM
-    * https://github.com/thieu1995/reflame
-    * https://github.com/aiir-team
+- 🔧 [MEALPY](https://github.com/thieu1995/mealpy)
+- 🔍 [Metaheuristics](https://github.com/thieu1995/metaheuristics)
+- 🧪 [Permetrics](https://github.com/thieu1995/permetrics)
+- 📦 [Opfunu](https://github.com/thieu1995/opfunu)
+- 🔬 [PFEvaluator](https://github.com/thieu1995/pfevaluator)
+- 🧠 [IntelELM](https://github.com/thieu1995/IntelELM)
+- 🔥 [Reflame](https://github.com/thieu1995/reflame)
+- 🧭 [MetaCluster](https://github.com/thieu1995/MetaCluster)
+- 🧠 [Enoppy](https://github.com/thieu1995/enoppy)
+- 🤖 [AIIR Team](https://github.com/aiir-team)
+
+---
+
+Developed by: [Thieu](mailto:nguyenthieu2102@gmail.com?Subject=XANFIS_QUESTIONS) @ 2025
