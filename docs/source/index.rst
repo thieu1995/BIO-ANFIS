@@ -6,7 +6,7 @@
 Welcome to XANFIS's documentation!
 ==================================
 
-.. image:: https://img.shields.io/badge/release-1.0.0-yellow.svg
+.. image:: https://img.shields.io/badge/release-1.0.1-yellow.svg
    :target: https://github.com/thieu1995/X-ANFIS/releases
 
 .. image:: https://img.shields.io/pypi/wheel/gensim.svg
@@ -18,9 +18,6 @@ Welcome to XANFIS's documentation!
 .. image:: https://img.shields.io/pypi/pyversions/xanfis.svg
    :target: https://www.python.org/
 
-.. image:: https://img.shields.io/pypi/status/xanfis.svg
-   :target: https://img.shields.io/pypi/status/xanfis.svg
-
 .. image:: https://img.shields.io/pypi/dm/xanfis.svg
    :target: https://img.shields.io/pypi/dm/xanfis.svg
 
@@ -30,20 +27,11 @@ Welcome to XANFIS's documentation!
 .. image:: https://pepy.tech/badge/xanfis
    :target: https://pepy.tech/project/xanfis
 
-.. image:: https://img.shields.io/github/release-date/thieu1995/X-ANFIS.svg
-   :target: https://img.shields.io/github/release-date/thieu1995/X-ANFIS.svg
-
 .. image:: https://readthedocs.org/projects/xanfis/badge/?version=latest
    :target: https://x-anfis.readthedocs.io/en/latest/?badge=latest
 
 .. image:: https://img.shields.io/badge/Chat-on%20Telegram-blue
    :target: https://t.me/+fRVCJGuGJg1mNDg1
-
-.. image:: https://img.shields.io/github/contributors/thieu1995/X-ANFIS.svg
-   :target: https://img.shields.io/github/contributors/thieu1995/X-ANFIS.svg
-
-.. image:: https://img.shields.io/badge/PR-Welcome-%23FF8300.svg?
-   :target: https://git-scm.com/book/en/v2/GitHub-Contributing-to-a-Project
 
 .. image:: https://img.shields.io/badge/DOI-10.6084%2Fm9.figshare.28802531-blue
    :target: https://doi.org/10.6084/m9.figshare.28802531
@@ -67,6 +55,43 @@ and even bio-inspired methods.
 * **Documentation:** https://x-anfis.readthedocs.io
 * **Python versions:** >= 3.8.x
 * **Dependencies:** numpy, scipy, scikit-learn, pandas, mealpy, permetrics, torch
+
+----------------------
+The OOP structure idea
+----------------------
+
+The structure and idea of this library is followed::
+
+   CustomANFIS (torch.nn.Module)
+   BaseAnfis (Scikit-learn BaseEstimator)
+    ├── BaseClassicAnfis
+    │   ├── AnfisRegressor
+    │   └── AnfisClassifier
+    ├── BaseGdAnfis
+    │   ├── GdAnfisRegressor
+    │   └── GdAnfisClassifier
+    └── BaseBioAnfis
+        ├── BioAnfisRegressor
+        └── BioAnfisClassifier
+
+   .CustomANFIS class: Define general Pytorch model
+
+   .BaseAnfis class: Inherit BaseEstimator from Scikit-Learn
+
+   .BaseClassicAnfis: Inherit BaseAnfis class, this is classical (traditional) ANFIS model
+     + Purpose: Gradient-based training for membership parameters, and Pseudo-inverse and Ridge regresison for consequent (output weights)
+     + AnfisRegressor: Inherit BaseClassicAnfis and RegressorMixin classes, ANFIS wrapper for regression tasks
+     + AnfisClassifier: Inherit BaseClassicAnfis and ClassifierMixin classes, ANFIS wrapper for classification tasks
+
+   .BaseGdAnfis: Inherit BaseAnfis class, this is gradient-based ANFIS model
+     + Purpose: Gradient-based training for both membership parameters and consequent (output weights)
+     + GdAnfisRegressor: Inherit BaseGdAnfis and RegressorMixin classes, ANFIS wrapper for regression tasks
+     + GdAnfisClassifier: Inherit BaseGdAnfis and ClassifierMixin classes, ANFIS wrapper for classification tasks
+
+   .BaseBioAnfis: Inherit BaseAnfis class, this is bio-inspired ANFIS model
+     + Purpose: Bio-inspired training for both membership parameters and Psedo-inverse and Ridge regresison for consequent (output weights)
+     + BioAnfisRegressor: Inherit BaseBioAnfis and RegressorMixin classes, ANFIS wrapper for regression tasks
+     + BioAnfisClassifier: Inherit BaseBioAnfis and ClassifierMixin classes, ANFIS wrapper for classification tasks
 
 
 .. toctree::
