@@ -6,7 +6,7 @@ authors:
     orcid: "https://orcid.org/0000-0001-9994-8747"
 title: "X-ANFIS: An Extensible and Cross-Learning ANFIS Framework for Machine Learning Tasks"
 doi: "10.5281/zenodo.1234567"
-version: v1.0.0
+version: v1.0.1
 doi: 10.6084/m9.figshare.28802531
 date-released: 2025-14-04
 url: "https://github.com/thieu1995/X-ANFIS"
