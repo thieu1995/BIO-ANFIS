@@ -59,21 +59,19 @@ jobs:
           path: junit/pytest-results-${{ matrix.python-version }}.xml
         if: always()
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.11
-
-      - name: Install dependencies
+      - name: Install build dependencies (only for Python 3.11)
+        if: matrix.python-version == '3.11'
         run: |
           pip install -r requirements.txt
           pip install --upgrade setuptools wheel twine
 
-      - name: Build package
+      - name: Build package (only for Python 3.11)
+        if: matrix.python-version == '3.11'
         run: |
           python setup.py sdist bdist_wheel
 
-      - name: Upload dist as artifact
+      - name: Upload dist as artifact (only for Python 3.11)
+        if: matrix.python-version == '3.11'
         uses: actions/upload-artifact@v4
         with:
           name: dist-package
