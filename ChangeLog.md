@@ -1,11 +1,13 @@
 
 
-# Version 1.0.1
+# Version 1.1.0
 
 + Update dependency versions in requirements.txt (mealpy from 3.0.1 to 3.0.2, permetrics from 1.5.0 to 2.0.0)
 + Update infors (CITATION.cff, MANIFEST.in, requirements.txt)
-+ Update workflows
-+
++ Update workflows, requirements, examples.
++ Fix bug missing loss_train in classic and gd-based models.
++ Fix bug put classic models and gd-based models to device (gpu/cpu)
++ Move parameters from fit() to init() in bio-based models include lb, ub, mode, n_workers, termination.
 
 ---------------------------------------------------------------------------------------
 
