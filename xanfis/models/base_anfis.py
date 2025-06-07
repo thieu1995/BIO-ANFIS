@@ -917,14 +917,14 @@ class BaseClassicAnfis(BaseAnfis):
                     print(f"Early stopping at epoch {epoch + 1}")
                     break
                 if self.verbose:
-                    print(f"Epoch: {epoch + 1}, Train Loss: {avg_loss:.4f}, Validation Loss: {val_loss:.4f}")
+                    print(f"Epoch: {epoch + 1}, Train Loss: {avg_loss:.6f}, Validation Loss: {val_loss:.6f}")
             else:
                 # Early stopping based on training loss if no validation is used
                 if self.early_stopping and self.early_stopper.early_stop(avg_loss):
                     print(f"Early stopping at epoch {epoch + 1}")
                     break
                 if self.verbose:
-                    print(f"Epoch: {epoch + 1}, Train Loss: {avg_loss:.4f}")
+                    print(f"Epoch: {epoch + 1}, Train Loss: {avg_loss:.6f}")
 
 
 class BaseGdAnfis(BaseAnfis):
@@ -1139,8 +1139,10 @@ class BaseGdAnfis(BaseAnfis):
         train_loader, X_valid_tensor, y_valid_tensor = data
 
         # Start training
-        self.network.train()  # Set model to training mode
+        self.loss_train = []
         for epoch in range(self.epochs):
+            self.network.train()  # Set model to training mode
+
             # Initialize total loss for this epoch
             total_loss = 0.0
 
@@ -1163,6 +1165,7 @@ class BaseGdAnfis(BaseAnfis):
 
             # Calculate average training loss for this epoch
             avg_loss = total_loss / len(train_loader)
+            self.loss_train.append(avg_loss)
 
             # Perform validation if validation mode is enabled
             if self.valid_mode:
@@ -1176,17 +1179,14 @@ class BaseGdAnfis(BaseAnfis):
                     print(f"Early stopping at epoch {epoch + 1}")
                     break
                 if self.verbose:
-                    print(f"Epoch: {epoch + 1}, Train Loss: {avg_loss:.4f}, Validation Loss: {val_loss:.4f}")
+                    print(f"Epoch: {epoch + 1}, Train Loss: {avg_loss:.6f}, Validation Loss: {val_loss:.6f}")
             else:
                 # Early stopping based on training loss if no validation is used
                 if self.early_stopping and self.early_stopper.early_stop(avg_loss):
                     print(f"Early stopping at epoch {epoch + 1}")
                     break
                 if self.verbose:
-                    print(f"Epoch: {epoch + 1}, Train Loss: {avg_loss:.4f}")
-
-            # Return to training mode for next epoch
-            self.network.train()
+                    print(f"Epoch: {epoch + 1}, Train Loss: {avg_loss:.6f}")
 
 
 class BaseBioAnfis(BaseAnfis):
