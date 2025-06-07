@@ -135,7 +135,7 @@ class GdAnfisClassifier(BaseGdAnfis, ClassifierMixin):
         if self.task == "binary_classification":
             y_tensor = torch.tensor(y, dtype=torch.float32)
             y_tensor = torch.unsqueeze(y_tensor, 1)
-        y_tensor = torch.to(self.device)
+        y_tensor = y_tensor.to(self.device)
 
         train_loader = DataLoader(TensorDataset(X_tensor, y_tensor), batch_size=self.batch_size, shuffle=True)
 
