@@ -1,6 +1,6 @@
 # X-ANFIS: Modular ANFIS Library with Classic, Gradient, and Bio-inspired Training Strategies
 
-[![GitHub release](https://img.shields.io/badge/release-1.0.1-yellow.svg)](https://github.com/thieu1995/X-ANFIS/releases)
+[![GitHub release](https://img.shields.io/badge/release-1.1.0-yellow.svg)](https://github.com/thieu1995/X-ANFIS/releases)
 [![Wheel](https://img.shields.io/pypi/wheel/gensim.svg)](https://pypi.python.org/pypi/xanfis) 
 [![PyPI version](https://badge.fury.io/py/xanfis.svg)](https://badge.fury.io/py/xanfis)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/xanfis.svg)
@@ -48,7 +48,7 @@ Please include these citations if you plan to use this library:
 @software{thieu20250414,
   author  = {Nguyen Van Thieu},
   title   = {X-ANFIS: An Extensible and Cross-Learning ANFIS Framework for Machine Learning Tasks},
-  month   = april,
+  month   = June,
   year    = 2025,
   doi     = {10.6084/m9.figshare.28802531},
   url     = {https://github.com/thieu1995/X-ANFIS}
