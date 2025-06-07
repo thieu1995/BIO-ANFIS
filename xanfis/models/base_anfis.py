@@ -1050,6 +1050,9 @@ class BaseGdAnfis(BaseAnfis):
     verbose : bool, optional
         Enable verbose output (default is True).
 
+    device : str
+        Device to run the model on (e.g., "cpu" or "gpu").
+
     Methods
     -------
     build_model():
@@ -1071,7 +1074,7 @@ class BaseGdAnfis(BaseAnfis):
     def __init__(self, num_rules=10, mf_class="Gaussian", vanishing_strategy="prod", act_output=None,
                  reg_lambda=None, epochs=1000, batch_size=16, optim="Adam", optim_params=None,
                  early_stopping=True, n_patience=10, epsilon=0.001, valid_rate=0.1,
-                 seed=42, verbose=True):
+                 seed=42, verbose=True, device=None):
         """
         Initialize the ANFIS with user-defined architecture, training parameters, and optimization settings.
         """
@@ -1086,6 +1089,13 @@ class BaseGdAnfis(BaseAnfis):
         self.epsilon = epsilon
         self.valid_rate = valid_rate
         self.verbose = verbose
+        if device == 'gpu':
+            if torch.cuda.is_available():
+                self.device = 'cuda'
+            else:
+                raise ValueError("GPU is not available. Please set device to 'cpu'.")
+        else:
+            self.device = "cpu"
 
         # Internal attributes for model, optimizer, and early stopping
         self.size_input = None
@@ -1109,8 +1119,9 @@ class BaseGdAnfis(BaseAnfis):
             self.early_stopper = EarlyStopper(patience=self.n_patience, epsilon=self.epsilon)
 
         # Define model, optimizer, and loss criterion based on task
-        self.network = CustomANFIS(self.size_input, self.num_rules, self.size_output, self.mf_class,
-                                   self.task, self.vanishing_strategy, self.act_output, self.reg_lambda, self.seed)
+        self.network = CustomANFIS(self.size_input, self.num_rules, self.size_output,
+                                   self.mf_class, self.task, self.vanishing_strategy,
+                                   self.act_output, self.reg_lambda, self.seed).to(self.device)
         self.optimizer = getattr(torch.optim, self.optim)(self.network.parameters(), **self.optim_params)
 
         # Select loss function based on task type
