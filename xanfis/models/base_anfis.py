@@ -3,7 +3,7 @@
 #       Email: nguyenthieu2102@gmail.com            %                                                    
 #       Github: https://github.com/thieu1995        %                         
 # --------------------------------------------------%
-
+import numbers
 from typing import TypeVar
 import inspect
 import pprint
@@ -1221,6 +1221,40 @@ class BaseBioAnfis(BaseAnfis):
     parameters and rule weights. The consequent parameters are learned using Least Squares Estimation (LSE)
     in a hybrid-learning manner.
 
+    Parameters
+    ----------
+    num_rules : int, optional
+        Number of fuzzy rules in the ANFIS model (default is 10).
+    mf_class : str, optional
+        Type of membership function to use (e.g., "Gaussian", "Triangular") (default is "Gaussian").
+    vanishing_strategy : str or None, optional
+        Strategy to handle vanishing gradients when combining membership values.
+        Can be one of {"prod", "mean", "blend"} (default is "prod").
+    act_output : any, optional
+        Activation function to apply to the output layer (default is None).
+    reg_lambda : float or None, optional
+        L2 regularization strength for least squares estimation (default is None).
+    optim : str, optional
+        Name of the metaheuristic optimizer to use (default is "BaseGA").
+    optim_params : dict, optional
+        Dictionary of hyperparameters for the optimizer (default is None).
+    obj_name : str, optional
+        Name of the objective function for optimization (default is None).
+    seed : int, optional
+        Random seed for reproducibility (default is 42).
+    verbose : bool, optional
+        Whether to print logs during training (default is True).
+    lb : int, float, list, tuple, np.ndarray, optional.
+        Lower bounds for optimization (default is (-1.0,)).
+    ub : int, float, list, tuple, np.ndarray, optional.
+        Upper bounds for optimization (default is (1.0,)).
+    mode : str, optional
+        Mode for optimization (default is 'single').
+    n_workers : int, optional
+        Number of workers for parallel processing (default is None).
+    termination : any, optional
+        Termination criteria for optimization (default is None).
+
     Attributes
     ----------
     SUPPORTED_OPTIMIZERS : list of str
@@ -1277,48 +1311,18 @@ class BaseBioAnfis(BaseAnfis):
     SUPPORTED_REG_OBJECTIVES = get_all_regression_metrics()
 
     def __init__(self, num_rules=10, mf_class="Gaussian", vanishing_strategy="prod", act_output=None,
-                 reg_lambda=None, optim="BaseGA", optim_params=None, obj_name=None, seed=42, verbose=True):
-        """
-        Initialize the BaseGdAnfis model with user-defined architecture and training configurations.
-
-        Parameters
-        ----------
-        num_rules : int, default=10
-            Number of fuzzy rules in the ANFIS network.
-        mf_class : str, default="Gaussian"
-            Type of membership function to use.
-        vanishing_strategy : str or None, optional
-            Strategy for handling vanishing gradients (if any).
-        act_output : callable or None, default=None
-            Activation function applied at the output layer.
-        reg_lambda : float or None, optional
-            L2 regularization strength; set None to disable.
-        epochs : int, default=1000
-            Total number of training epochs.
-        batch_size : int, default=16
-            Batch size for training.
-        optim : str, default="Adam"
-            Name of optimizer from SUPPORTED_OPTIMIZERS.
-        optim_params : dict or None, default=None
-            Parameters for the selected optimizer (e.g., {'lr': 0.01}).
-        early_stopping : bool, default=True
-            Whether to use early stopping.
-        n_patience : int, default=10
-            Patience for early stopping.
-        epsilon : float, default=0.001
-            Threshold for early stopping improvement.
-        valid_rate : float, default=0.1
-            Proportion of training data to use for validation.
-        seed : int, default=42
-            Random seed for reproducibility.
-        verbose : bool, default=True
-            Whether to print training logs per epoch.
-        """
+                 reg_lambda=None, optim="BaseGA", optim_params=None, obj_name=None, seed=42, verbose=True,
+                 lb=None, ub=None, mode='single', n_workers=None, termination=None):
         super().__init__(num_rules, mf_class, "classification", vanishing_strategy=vanishing_strategy,
                          act_output=act_output, reg_lambda=reg_lambda, seed=seed)
         self.optim = optim
         self.optim_params = optim_params
         self.verbose = verbose
+        self.lb = lb
+        self.ub = ub
+        self.mode = mode
+        self.n_workers = n_workers
+        self.termination = termination
 
         # Initialize model parameters
         self.size_input = None
@@ -1420,9 +1424,9 @@ class BaseBioAnfis(BaseAnfis):
         Parameters
         ----------
         lb : list, tuple, np.ndarray, int, or float, optional
-            The lower bounds.
+            The lower bounds for weights and biases in network.
         ub : list, tuple, np.ndarray, int, or float, optional
-            The upper bounds.
+            The upper bounds for weights and biases in network.
         n_dims : int
             The number of dimensions.
 
@@ -1436,24 +1440,30 @@ class BaseBioAnfis(BaseAnfis):
         ValueError
             If the bounds are not valid.
         """
-        if isinstance(lb, (list, tuple, np.ndarray)) and isinstance(ub, (list, tuple, np.ndarray)):
-            if len(lb) == len(ub):
-                if len(lb) == 1:
-                    lb = np.array(lb * n_dims, dtype=float)
-                    ub = np.array(ub * n_dims, dtype=float)
-                    return lb, ub
-                elif len(lb) == n_dims:
-                    return lb, ub
-                else:
-                    raise ValueError(f"Invalid lb and ub. Their length should be equal to 1 or {n_dims}.")
+        if lb is None:
+            lb = (-1.,) * n_dims
+        elif isinstance(lb, numbers.Number):
+            lb = (lb, ) * n_dims
+        elif isinstance(lb, (list, tuple, np.ndarray)):
+            if len(lb) == 1:
+                lb = np.array(lb * n_dims, dtype=float)
             else:
-                raise ValueError(f"Invalid lb and ub. They should have the same length.")
-        elif isinstance(lb, (int, float)) and isinstance(ub, (int, float)):
-            lb = (float(lb),) * n_dims
-            ub = (float(ub),) * n_dims
-            return lb, ub
-        else:
-            raise ValueError(f"Invalid lb and ub. They should be a number of list/tuple/np.ndarray with size equal to {n_dims}")
+                lb = np.array(lb, dtype=float).ravel()
+
+        if ub is None:
+            ub = (1.,) * n_dims
+        elif isinstance(ub, numbers.Number):
+            ub = (ub, ) * n_dims
+        elif isinstance(ub, (list, tuple, np.ndarray)):
+            if len(ub) == 1:
+                ub = np.array(ub * n_dims, dtype=float)
+            else:
+                ub = np.array(ub, dtype=float).ravel()
+
+        if len(lb) != len(ub):
+            raise ValueError(f"Invalid lb and ub. Their length should be equal to 1 or {n_dims}.")
+
+        return np.array(lb).ravel(), np.array(ub).ravel()
 
     def objective_function(self, solution=None):
         """
@@ -1477,35 +1487,11 @@ class BaseBioAnfis(BaseAnfis):
         loss_train = self.metric_class(y_train, y_pred).get_metric_by_name(self.obj_name)[self.obj_name]
         return np.mean([loss_train])
 
-    def _fit(self, data, lb=(-1.0,), ub=(1.0,), mode='single', n_workers=None,
-             termination=None, save_population=False, **kwargs):
-        """
-        Train the ANFIS model using gradient descent.
-
-        Parameters
-        ----------
-        data : tuple
-            Tuple of (train_loader, X_valid_tensor, y_valid_tensor), where:
-            - train_loader : DataLoader
-                Iterable over training mini-batches.
-            - X_valid_tensor : torch.Tensor or None
-                Validation input features.
-            - y_valid_tensor : torch.Tensor or None
-                Validation targets.
-        **kwargs : dict
-            Additional keyword arguments for training configuration.
-
-        Notes
-        -----
-        - Uses standard gradient descent for training all parameters.
-        - Applies L2 regularization to trainable weights if enabled.
-        - Supports both training-only and validation-based early stopping.
-        - Logs loss and early stopping progress when `verbose=True`.
-        """
+    def _fit(self, X, y):
         # Get data
         n_dims = self.network.get_weights_size()
-        lb, ub = self._set_lb_ub(lb, ub, n_dims)
-        self.data = data
+        lb, ub = self._set_lb_ub(self.lb, self.ub, n_dims)
+        self.data = (X, y)
 
         log_to = "console" if self.verbose else "None"
         if self.obj_name is None:
@@ -1522,13 +1508,10 @@ class BaseBioAnfis(BaseAnfis):
             "bounds": FloatVar(lb=lb, ub=ub),
             "minmax": minmax,
             "log_to": log_to,
-            "save_population": save_population,
         }
-        if termination is None:
-            self.optimizer.solve(problem, mode=mode, n_workers=n_workers, seed=self.seed)
-        else:
-            self.optimizer.solve(problem, mode=mode, n_workers=n_workers, termination=termination, seed=self.seed)
+        self.optimizer.solve(problem, mode=self.mode, n_workers=self.n_workers,
+                             termination=self.termination, seed=self.seed)
         self.network.set_weights(self.optimizer.g_best.solution)
-        self.network.update_output_weights_by_least_squares(data[0], data[1])
+        self.network.update_output_weights_by_least_squares(X, y)
         self.loss_train = np.array(self.optimizer.history.list_global_best_fit)
         return self

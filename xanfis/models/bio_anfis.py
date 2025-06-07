@@ -50,6 +50,16 @@ class BioAnfisClassifier(BaseBioAnfis, ClassifierMixin):
         Random seed for reproducibility (default is 42).
     verbose : bool, optional
         Whether to print detailed logs during fitting (default is True).
+    lb : int, float, list, tuple, np.ndarray, optional.
+        Lower bounds for optimization (default is (-1.0,)).
+    ub : int, float, list, tuple, np.ndarray, optional.
+        Upper bounds for optimization (default is (1.0,)).
+    mode : str, optional
+        Mode for optimization (default is 'single').
+    n_workers : int, optional
+        Number of workers for parallel processing (default is None).
+    termination : any, optional
+        Termination criteria for optimization (default is None).
 
     Methods
     -------
@@ -70,40 +80,15 @@ class BioAnfisClassifier(BaseBioAnfis, ClassifierMixin):
     """
 
     def __init__(self, num_rules=10, mf_class="Gaussian", vanishing_strategy="prod", act_output=None, reg_lambda=None,
-                 optim="BaseGA", optim_params=None, obj_name="F1S", seed=42, verbose=True):
-        """
-        Initializes the BioAnfisClassifier with specified parameters.
-
-        Parameters
-        ----------
-        num_rules : int, optional
-            Number of fuzzy rules (default is 10).
-        mf_class : str, optional
-            Membership function class (default is "Gaussian").
-        vanishing_strategy : str or None, optional
-            Strategy for calculating rule strengths (default is 'prod').
-        act_output : any, optional
-            Activation function for the output layer (default is None).
-        reg_lambda : float or None, optional
-            Regularization parameter (default is None). This is used for regularizing the model.
-        optim : str, optional
-            The optimization algorithm to use (default is "BaseGA").
-        optim_params : dict, optional
-            Parameters for the optimizer (default is None).
-        obj_name : str, optional
-            The objective name for the optimization (default is "F1S").
-        seed : int, optional
-            Random seed for reproducibility (default is 42).
-        verbose : bool, optional
-            Whether to print detailed logs during fitting (default is True).
-        """
+                 optim="BaseGA", optim_params=None, obj_name="F1S", seed=42, verbose=True,
+                 lb=None, ub=None, mode='single', n_workers=None, termination=None):
         super().__init__(num_rules, mf_class, vanishing_strategy, act_output, reg_lambda,
-                         optim, optim_params, obj_name, seed, verbose)
+                         optim, optim_params, obj_name, seed, verbose,
+                         lb, ub, mode, n_workers, termination)
         self.classes_ = None  # Initialize classes to None
         self.metric_class = ClassificationMetric  # Set the metric class for evaluation
 
-    def fit(self, X, y, lb=(-1.0,), ub=(1.0,), mode='single', n_workers=None,
-            termination=None, save_population=False, **kwargs):
+    def fit(self, X, y):
         """
         Fits the model to the training data.
 
@@ -113,20 +98,6 @@ class BioAnfisClassifier(BaseBioAnfis, ClassifierMixin):
             Training data.
         y : array-like, shape (n_samples,)
             Target values.
-        lb : int, float, list, tuple, np.ndarray, optional.
-            Lower bounds for optimization (default is (-1.0,)).
-        ub : int, float, list, tuple, np.ndarray, optional.
-            Upper bounds for optimization (default is (1.0,)).
-        mode : str, optional
-            Mode for optimization (default is 'single').
-        n_workers : int, optional
-            Number of workers for parallel processing (default is None).
-        termination : any, optional
-            Termination criteria for optimization (default is None).
-        save_population : bool, optional
-            Whether to save the population during optimization (default is False).
-        **kwargs : additional parameters
-            Additional parameters for fitting.
 
         Returns
         -------
@@ -154,7 +125,7 @@ class BioAnfisClassifier(BaseBioAnfis, ClassifierMixin):
         self.build_model()  # Build the model architecture
 
         ## Fit the data
-        self._fit((X_tensor, y), lb, ub, mode, n_workers, termination, save_population, **kwargs)  # Fit the model
+        self._fit(X_tensor, y)  # Fit the model
 
         return self  # Return the fitted model
 
@@ -298,6 +269,16 @@ class BioAnfisRegressor(BaseBioAnfis, RegressorMixin):
         Random seed for reproducibility (default is 42).
     verbose : bool, optional
         Whether to print detailed logs during fitting (default is True).
+    lb : int, float, list, tuple, np.ndarray, optional.
+        Lower bounds for optimization (default is (-1.0,)).
+    ub : int, float, list, tuple, np.ndarray, optional.
+        Upper bounds for optimization (default is (1.0,)).
+    mode : str, optional
+        Mode for optimization (default is 'single').
+    n_workers : int, optional
+        Number of workers for parallel processing (default is None).
+    termination : any, optional
+        Termination criteria for optimization (default is None).
 
     Methods
     -------
@@ -315,39 +296,14 @@ class BioAnfisRegressor(BaseBioAnfis, RegressorMixin):
     """
 
     def __init__(self, num_rules=10, mf_class="Gaussian", vanishing_strategy="prod", act_output=None, reg_lambda=None,
-                 optim="BaseGA", optim_params=None, obj_name="MSE", seed=42, verbose=True):
-        """
-        Initializes the BioAnfisRegressor with specified parameters.
-
-        Parameters
-        ----------
-        num_rules : int, optional
-            Number of fuzzy rules (default is 10).
-        mf_class : str, optional
-            Membership function class (default is "Gaussian").
-        vanishing_strategy : str or None, optional
-            Strategy for calculating rule strengths (default is 'prod').
-        act_output : any, optional
-            Activation function for the output layer (default is None).
-        reg_lambda : float or None, optional
-            Regularization parameter (default is None). This is used for regularizing the model.
-        optim : str, optional
-            The optimization algorithm to use (default is "BaseGA").
-        optim_params : dict, optional
-            Parameters for the optimizer (default is None).
-        obj_name : str, optional
-            The objective name for the optimization (default is "MSE").
-        seed : int, optional
-            Random seed for reproducibility (default is 42).
-        verbose : bool, optional
-            Whether to print detailed logs during fitting (default is True).
-        """
+                 optim="BaseGA", optim_params=None, obj_name="MSE", seed=42, verbose=True,
+                 lb=None, ub=None, mode='single', n_workers=None, termination=None):
         super().__init__(num_rules, mf_class, vanishing_strategy, act_output, reg_lambda,
-                         optim, optim_params, obj_name, seed, verbose)
+                         optim, optim_params, obj_name, seed, verbose,
+                         lb, ub, mode, n_workers, termination)
         self.metric_class = RegressionMetric  # Set the metric class for evaluation
 
-    def fit(self, X, y, lb=(-1.0,), ub=(1.0,), mode='single', n_workers=None,
-            termination=None, save_population=False, **kwargs):
+    def fit(self, X, y):
         """
         Fits the model to the training data.
 
@@ -357,20 +313,6 @@ class BioAnfisRegressor(BaseBioAnfis, RegressorMixin):
             Training data.
         y : array-like, shape (n_samples,) or (n_samples, n_outputs)
             Target values.
-        lb : tuple, optional
-            Lower bounds for optimization (default is (-1.0,)).
-        ub : tuple, optional
-            Upper bounds for optimization (default is (1.0,)).
-        mode : str, optional
-            Mode for optimization (default is 'single').
-        n_workers : int, optional
-            Number of workers for parallel processing (default is None).
-        termination : any, optional
-            Termination criteria for optimization (default is None).
-        save_population : bool, optional
-            Whether to save the population during optimization (default is False).
-        **kwargs : additional parameters
-            Additional parameters for fitting.
 
         Returns
         -------
@@ -395,7 +337,7 @@ class BioAnfisRegressor(BaseBioAnfis, RegressorMixin):
         self.build_model()  # Build the model architecture
 
         ## Fit the data
-        self._fit((X_tensor, y), lb, ub, mode, n_workers, termination, save_population, **kwargs)
+        self._fit(X_tensor, y)
 
         return self  # Return the fitted model
 
