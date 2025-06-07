@@ -70,7 +70,7 @@ class AnfisClassifier(BaseClassicAnfis, ClassifierMixin):
         Random seed used for reproducibility.
     verbose : bool, optional (default=True)
         Whether to print training progress and validation results.
-    device : str
+    device : str, optional (default = None)
         Device to run the model on (e.g., "cpu" or "gpu").
 
     Methods
@@ -338,7 +338,7 @@ class AnfisRegressor(BaseClassicAnfis, RegressorMixin):
         Random seed for reproducibility (default is 42).
     verbose : bool, optional
         Flag to enable verbose output during training (default is True).
-    device : str
+    device : str, optional (default = None)
         Device to run the model on (e.g., "cpu" or "gpu").
 
     Methods

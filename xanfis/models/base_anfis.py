@@ -3,6 +3,7 @@
 #       Email: nguyenthieu2102@gmail.com            %                                                    
 #       Github: https://github.com/thieu1995        %                         
 # --------------------------------------------------%
+
 import numbers
 from typing import TypeVar
 import inspect
@@ -757,7 +758,7 @@ class BaseClassicAnfis(BaseAnfis):
         Random seed for reproducibility.
     verbose : bool, default=True
         Whether to print progress during training.
-    device : str
+    device : str, optional (default = None)
         Device to run the model on (e.g., "cpu" or "gpu").
 
     Attributes
@@ -1050,7 +1051,7 @@ class BaseGdAnfis(BaseAnfis):
     verbose : bool, optional
         Enable verbose output (default is True).
 
-    device : str
+    device : str, optional (default = None)
         Device to run the model on (e.g., "cpu" or "gpu").
 
     Methods

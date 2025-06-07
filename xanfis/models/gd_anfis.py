@@ -66,7 +66,7 @@ class GdAnfisClassifier(BaseGdAnfis, ClassifierMixin):
         Random seed for reproducibility (default is 42).
     verbose : bool, optional
         Flag to enable verbose output during training (default is True).
-    device : str
+    device : str, optional (default = None)
         Device to run the model on (e.g., "cpu" or "gpu").
 
     Methods
@@ -333,7 +333,7 @@ class GdAnfisRegressor(BaseGdAnfis, RegressorMixin):
         Random seed for reproducibility (default is 42).
     verbose : bool, optional
         Flag to enable verbose output during training (default is True).
-    device : str
+    device : str, optional (default = None)
         Device to run the model on (e.g., "cpu" or "gpu").
 
     Methods
