@@ -26,10 +26,11 @@ data.y_test = scaler_y.transform(data.y_test)
 ## Create model
 model = BioAnfisClassifier(num_rules=10, mf_class="Gaussian",
                            vanishing_strategy="prod", act_output=None, reg_lambda=None,
-                           optim="BaseGA", optim_params={"name": "WOA", "epoch": 100, "pop_size": 20},
-                           obj_name="F1S", seed=42, verbose=True)
+                           optim="BaseGA", optim_params={"name": "GA", "epoch": 100, "pop_size": 20},
+                           obj_name="F1S", seed=42, verbose=True,
+                           lb=None, ub=None, mode="single", n_workers=None, termination=None)
 ## Train the model
-model.fit(X=data.X_train, y=data.y_train, lb=-1., ub=1.0)
+model.fit(X=data.X_train, y=data.y_train)
 
 ## Test the model
 y_pred = model.predict(data.X_test)

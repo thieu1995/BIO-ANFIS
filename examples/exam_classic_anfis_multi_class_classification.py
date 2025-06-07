@@ -30,7 +30,7 @@ model = AnfisClassifier(num_rules=20, mf_class="Gaussian",
                         vanishing_strategy="blend", act_output=None, reg_lambda=0.01,
                         epochs=50, batch_size=16, optim="Adam", optim_params={"lr": 0.01},
                         early_stopping=True, n_patience=10, epsilon=0.001, valid_rate=0.1,
-                        seed=42, verbose=True)
+                        seed=42, verbose=True, device=None)
 ## Train the model
 model.fit(X=data.X_train, y=data.y_train)
 

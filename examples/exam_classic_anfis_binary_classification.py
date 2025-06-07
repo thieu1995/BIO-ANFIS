@@ -27,10 +27,10 @@ print(type(data.X_train), type(data.y_train))
 
 ## Create model
 model = AnfisClassifier(num_rules=16, mf_class="Gaussian",
-                        vanishing_strategy="mean", act_output=None, reg_lambda=0.001,
+                        vanishing_strategy="prod", act_output="None", reg_lambda=None,
                         epochs=50, batch_size=16, optim="Adam", optim_params={"lr": 0.01},
                         early_stopping=True, n_patience=30, epsilon=0.01, valid_rate=0.1,
-                        seed=42, verbose=True)
+                        seed=42, verbose=True, device=None)
 ## Train the model
 model.fit(X=data.X_train, y=data.y_train)
 

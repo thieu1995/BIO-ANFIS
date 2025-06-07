@@ -30,7 +30,7 @@ model = GdAnfisRegressor(num_rules=10, mf_class="Gaussian",
                          vanishing_strategy="prod", act_output=None, reg_lambda=None,
                          epochs=100, batch_size=16, optim="Adam", optim_params=None,
                          early_stopping=True, n_patience=10, epsilon=0.1, valid_rate=0.1,
-                         seed=42, verbose=True)
+                         seed=42, verbose=True, device="cpu")
 ## Train the model
 model.fit(data.X_train, data.y_train)
 

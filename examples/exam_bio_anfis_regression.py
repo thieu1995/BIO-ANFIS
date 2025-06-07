@@ -27,8 +27,9 @@ data.y_test = scaler_y.transform(np.reshape(data.y_test, (-1, 1)))
 ## Create model
 model = BioAnfisRegressor(num_rules=10, mf_class="Gaussian",
                           vanishing_strategy="prod", act_output=None, reg_lambda=None,
-                          optim="BaseGA", optim_params={"name": "WOA", "epoch": 250, "pop_size": 30},
-                          obj_name="MSE", seed=42, verbose=True)
+                          optim="BaseGA", optim_params={"name": "GA", "epoch": 250, "pop_size": 30},
+                          obj_name="MSE", seed=42, verbose=True,
+                          lb=None, ub=None, mode="single", n_workers=None, termination=None)
 ## Train the model
 model.fit(data.X_train, data.y_train)
 
