@@ -869,8 +869,10 @@ class BaseClassicAnfis(BaseAnfis):
         train_loader, X_valid_tensor, y_valid_tensor = data
 
         # Start training
-        self.network.train()  # Set model to training mode
+        self.loss_train = []
         for epoch in range(self.epochs):
+            self.network.train()  # Set model to training mode
+
             # Initialize total loss for this epoch
             total_loss = 0.0
 
@@ -901,6 +903,7 @@ class BaseClassicAnfis(BaseAnfis):
 
             # Calculate average training loss for this epoch
             avg_loss = total_loss / len(train_loader)
+            self.loss_train.append(avg_loss)
 
             # Perform validation if validation mode is enabled
             if self.valid_mode:
@@ -922,9 +925,6 @@ class BaseClassicAnfis(BaseAnfis):
                     break
                 if self.verbose:
                     print(f"Epoch: {epoch + 1}, Train Loss: {avg_loss:.4f}")
-
-            # Return to training mode for next epoch
-            self.network.train()
 
 
 class BaseGdAnfis(BaseAnfis):
