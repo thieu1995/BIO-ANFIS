@@ -70,6 +70,8 @@ class AnfisClassifier(BaseClassicAnfis, ClassifierMixin):
         Random seed used for reproducibility.
     verbose : bool, optional (default=True)
         Whether to print training progress and validation results.
+    device : str
+        Device to run the model on (e.g., "cpu" or "gpu").
 
     Methods
     -------
@@ -95,11 +97,11 @@ class AnfisClassifier(BaseClassicAnfis, ClassifierMixin):
     def __init__(self, num_rules=10, mf_class="Gaussian", vanishing_strategy="prod", act_output=None,
                  reg_lambda=None, epochs=1000, batch_size=16, optim="Adam", optim_params=None,
                  early_stopping=True, n_patience=10, epsilon=0.001, valid_rate=0.1,
-                 seed=42, verbose=True):
+                 seed=42, verbose=True, device=None):
         # Call superclass initializer with the specified parameters.
         super().__init__(num_rules, mf_class, vanishing_strategy, act_output, reg_lambda,
                          epochs, batch_size, optim, optim_params,
-                         early_stopping, n_patience, epsilon, valid_rate, seed, verbose)
+                         early_stopping, n_patience, epsilon, valid_rate, seed, verbose, device)
         self.classes_ = None
 
     def process_data(self, X, y, **kwargs):
@@ -132,20 +134,22 @@ class AnfisClassifier(BaseClassicAnfis, ClassifierMixin):
                 raise ValueError("Validation rate must be between 0 and 1.")
 
         # Convert data to tensors and set up DataLoader
-        X_tensor = torch.tensor(X, dtype=torch.float32)
+        X_tensor = torch.tensor(X, dtype=torch.float32).to(self.device)
         y_tensor = torch.tensor(y, dtype=torch.long)
         if self.task == "binary_classification":
             y_tensor = torch.tensor(y, dtype=torch.float32)
             y_tensor = torch.unsqueeze(y_tensor, 1)
+        y_tensor = y_tensor.to(self.device)
 
         train_loader = DataLoader(TensorDataset(X_tensor, y_tensor), batch_size=self.batch_size, shuffle=True)
 
         if self.valid_mode:
-            X_valid_tensor = torch.tensor(X_valid, dtype=torch.float32)
+            X_valid_tensor = torch.tensor(X_valid, dtype=torch.float32).to(self.device)
             y_valid_tensor = torch.tensor(y_valid, dtype=torch.long)
             if self.task == "binary_classification":
                 y_valid_tensor = torch.tensor(y_valid, dtype=torch.float32)
                 y_valid_tensor = torch.unsqueeze(y_valid_tensor, 1)
+            y_valid_tensor = y_valid_tensor.to(self.device)
 
         return train_loader, X_valid_tensor, y_valid_tensor
 
@@ -205,7 +209,7 @@ class AnfisClassifier(BaseClassicAnfis, ClassifierMixin):
         numpy.ndarray
             Predicted class labels for each sample.
         """
-        X_tensor = torch.tensor(X, dtype=torch.float32)
+        X_tensor = torch.tensor(X, dtype=torch.float32).to(self.device)
         self.network.eval()
         with torch.no_grad():
             output = self.network(X_tensor)  # Get model predictions
@@ -213,7 +217,31 @@ class AnfisClassifier(BaseClassicAnfis, ClassifierMixin):
                 _, predicted = torch.max(output, 1)
             else:  # Binary classification
                 predicted = (output > 0.5).int().squeeze()
-        return predicted.numpy()
+        return predicted.cpu().numpy()
+
+    def predict_proba(self, X):
+        """
+        Computes the probability estimates for each class (for classification tasks only).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            Input data.
+
+        Returns
+        -------
+        numpy.ndarray
+            Probability predictions for each class.
+        """
+        X_tensor = torch.tensor(X, dtype=torch.float32).to(self.device)
+        if self.task not in ["classification", "binary_classification"]:
+            raise ValueError("predict_proba is only available for classification tasks.")
+
+        self.network.eval()  # Set model to evaluation mode
+        with torch.no_grad():
+            probs = self.network.forward(X_tensor)  # Forward pass to get probability estimates
+
+        return probs.cpu().numpy()  # Return as numpy array
 
     def score(self, X, y):
         """
@@ -234,30 +262,6 @@ class AnfisClassifier(BaseClassicAnfis, ClassifierMixin):
         """
         y_pred = self.predict(X)
         return accuracy_score(y, y_pred)
-
-    def predict_proba(self, X):
-        """
-        Computes the probability estimates for each class (for classification tasks only).
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            Input data.
-
-        Returns
-        -------
-        numpy.ndarray
-            Probability predictions for each class.
-        """
-        X_tensor = torch.tensor(X, dtype=torch.float32)
-        if self.task not in ["classification", "binary_classification"]:
-            raise ValueError("predict_proba is only available for classification tasks.")
-
-        self.network.eval()  # Set model to evaluation mode
-        with torch.no_grad():
-            probs = self.network.forward(X_tensor)  # Forward pass to get probability estimates
-
-        return probs.numpy()  # Return as numpy array
 
     def evaluate(self, y_true, y_pred, list_metrics=("AS", "RS")):
         """
@@ -334,6 +338,8 @@ class AnfisRegressor(BaseClassicAnfis, RegressorMixin):
         Random seed for reproducibility (default is 42).
     verbose : bool, optional
         Flag to enable verbose output during training (default is True).
+    device : str
+        Device to run the model on (e.g., "cpu" or "gpu").
 
     Methods
     -------
@@ -357,10 +363,10 @@ class AnfisRegressor(BaseClassicAnfis, RegressorMixin):
     def __init__(self, num_rules=10, mf_class="Gaussian", vanishing_strategy="prod", act_output=None,
                  reg_lambda=None, epochs=1000, batch_size=16, optim="Adam", optim_params=None,
                  early_stopping=True, n_patience=10, epsilon=0.001, valid_rate=0.1,
-                 seed=42, verbose=True):
+                 seed=42, verbose=True, device=None):
         super().__init__(num_rules, mf_class, vanishing_strategy, act_output, reg_lambda,
                          epochs, batch_size, optim, optim_params,
-                         early_stopping, n_patience, epsilon, valid_rate, seed, verbose)
+                         early_stopping, n_patience, epsilon, valid_rate, seed, verbose, device)
 
     def process_data(self, X, y, **kwargs):
         """
@@ -392,22 +398,24 @@ class AnfisRegressor(BaseClassicAnfis, RegressorMixin):
                 raise ValueError("Validation rate must be between 0 and 1.")
 
         # Convert training data to tensors
-        X_tensor = torch.tensor(X, dtype=torch.float32)
+        X_tensor = torch.tensor(X, dtype=torch.float32).to(self.device)
         y_tensor = torch.tensor(y, dtype=torch.float32)
 
         # Ensure the target tensor has correct dimensions
         if y_tensor.ndim == 1:
             y_tensor = y_tensor.unsqueeze(1)
+        y_tensor = y_tensor.to(self.device)
 
         # Create DataLoader for training data
         train_loader = DataLoader(TensorDataset(X_tensor, y_tensor), batch_size=self.batch_size, shuffle=True)
 
         # Process validation data if in validation mode
         if self.valid_mode:
-            X_valid_tensor = torch.tensor(X_valid, dtype=torch.float32)
+            X_valid_tensor = torch.tensor(X_valid, dtype=torch.float32).to(self.device)
             y_valid_tensor = torch.tensor(y_valid, dtype=torch.float32)
             if y_valid_tensor.ndim == 1:
                 y_valid_tensor = y_valid_tensor.unsqueeze(1)
+            y_valid_tensor = y_valid_tensor.to(self.device)
 
         return train_loader, X_valid_tensor, y_valid_tensor
 
@@ -464,11 +472,11 @@ class AnfisRegressor(BaseClassicAnfis, RegressorMixin):
             Predicted values for the input features.
         """
         # Convert input features to tensor
-        X_tensor = torch.tensor(X, dtype=torch.float32)
+        X_tensor = torch.tensor(X, dtype=torch.float32).to(self.device)
         self.network.eval()  # Set model to evaluation mode
         with torch.no_grad():
             predicted = self.network(X_tensor)  # Forward pass to get predictions
-        return predicted.numpy()  # Convert predictions to numpy array
+        return predicted.cpu().numpy()  # Convert predictions to numpy array
 
     def score(self, X, y):
         """

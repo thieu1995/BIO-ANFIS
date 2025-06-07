@@ -337,8 +337,9 @@ class CustomANFIS(nn.Module):
 
     def update_output_weights_by_least_squares(self, X, y):
         with torch.no_grad():
+            device = X.device
             N = X.shape[0]
-            ones = torch.ones(N, 1)
+            ones = torch.ones(N, 1, device=device)
             X_bias = torch.cat([X, ones], dim=1)        # (N, input_dim + 1)
             normalized_strengths = self._get_membership_strengths(X)        # (N x num_rules)
 
@@ -351,13 +352,14 @@ class CustomANFIS(nn.Module):
                 y = torch.nn.functional.one_hot(y.squeeze().long(), num_classes=self.output_dim).float()
             else:
                 y = y.to(dtype=F.dtype)
+            y = y.to(device)
 
             if self.reg_lambda == 0:    # No regularization
                 # coeffs_flat = torch.linalg.lstsq(F, y, driver='gelsd').solution
                 coeffs_flat = torch.linalg.pinv(F) @ y
 
             else:   # Least Squares Estimation with L2
-                I = torch.eye(F.shape[1], device=F.device, dtype=F.dtype)
+                I = torch.eye(F.shape[1], device=device, dtype=F.dtype)
                 coeffs_flat = torch.linalg.solve(F.T @ F + self.reg_lambda * I, F.T @ y)
 
             coeffs = coeffs_flat.view(self.num_rules, self.input_dim + 1, self.output_dim)
@@ -755,6 +757,8 @@ class BaseClassicAnfis(BaseAnfis):
         Random seed for reproducibility.
     verbose : bool, default=True
         Whether to print progress during training.
+    device : str
+        Device to run the model on (e.g., "cpu" or "gpu").
 
     Attributes
     ----------
@@ -777,7 +781,7 @@ class BaseClassicAnfis(BaseAnfis):
     def __init__(self, num_rules=10, mf_class="Gaussian", vanishing_strategy="prod", act_output=None,
                  reg_lambda=None, epochs=1000, batch_size=16, optim="Adam", optim_params=None,
                  early_stopping=True, n_patience=10, epsilon=0.001, valid_rate=0.1,
-                 seed=42, verbose=True):
+                 seed=42, verbose=True, device=None):
         """
         Initialize the ANFIS with user-defined architecture, training parameters, and optimization settings.
         """
@@ -792,6 +796,13 @@ class BaseClassicAnfis(BaseAnfis):
         self.epsilon = epsilon
         self.valid_rate = valid_rate
         self.verbose = verbose
+        if device == 'gpu':
+            if torch.cuda.is_available():
+                self.device = 'cuda'
+            else:
+                raise ValueError("GPU is not available. Please set device to 'cpu'.")
+        else:
+            self.device = "cpu"
 
         # Internal attributes for model, optimizer, and early stopping
         self.size_input = None
@@ -818,8 +829,9 @@ class BaseClassicAnfis(BaseAnfis):
             self.early_stopper = EarlyStopper(patience=self.n_patience, epsilon=self.epsilon)
 
         # Define model, optimizer, and loss criterion based on task
-        self.network = CustomANFIS(self.size_input, self.num_rules, self.size_output, self.mf_class,
-                                   self.task, self.vanishing_strategy, self.act_output, self.reg_lambda, self.seed)
+        self.network = CustomANFIS(self.size_input, self.num_rules, self.size_output,
+                                   self.mf_class, self.task, self.vanishing_strategy,
+                                   self.act_output, self.reg_lambda, self.seed).to(self.device)
         # Freeze consequent parameters during GD
         params = [p for name, p in self.network.named_parameters() if 'coeffs' not in name]
         self.optimizer = getattr(torch.optim, self.optim)(params, **self.optim_params)
