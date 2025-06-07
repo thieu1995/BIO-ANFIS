@@ -2,12 +2,24 @@
 
 # Version 1.1.0
 
-+ Update dependency versions in requirements.txt (mealpy from 3.0.1 to 3.0.2, permetrics from 1.5.0 to 2.0.0)
-+ Update infors (CITATION.cff, MANIFEST.in, requirements.txt)
-+ Update workflows, requirements, examples.
-+ Fix bug missing loss_train in classic and gd-based models.
-+ Fix bug put classic models and gd-based models to device (gpu/cpu)
-+ Move parameters from fit() to init() in bio-based models include lb, ub, mode, n_workers, termination.
+### Dependencies
+- Updated `mealpy` from version **3.0.1** to **3.0.2**.
+- Updated `permetrics` from version **1.5.0** to **2.0.0**.
+- Updated `requirements.txt` accordingly.
+
+### Metadata and Configuration
+- Updated metadata files: `CITATION.cff`, `MANIFEST.in`, and `requirements.txt`.
+
+### Codebase Improvements
+- Updated GitHub workflows.
+- Refreshed example scripts and requirement files.
+
+### Bug Fixes
+- Fixed missing `loss_train` attribute in classic and gradient-based models.
+- Fixed issue with device assignment (CPU/GPU) for classic and gradient-based models.
+
+### Refactoring
+- Moved parameters (`lb`, `ub`, `mode`, `n_workers`, `termination`) from the `fit()` method to the model constructor (`__init__()`) in bio-inspired models.
 
 ---------------------------------------------------------------------------------------
 
