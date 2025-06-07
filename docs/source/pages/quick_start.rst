@@ -4,7 +4,7 @@ Installation
 
 * Install the `current PyPI release <https://pypi.python.org/pypi/xanfis />`_::
 
-   $ pip install xanfis==1.0.0
+   $ pip install xanfis==1.1.0
 
 
 * Install directly from source code::

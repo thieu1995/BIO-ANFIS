@@ -7,7 +7,7 @@ Please include these citations if you plan to use this library::
     @software{thieu20250414,
         author       = {Nguyen Van Thieu},
         title        = {X-ANFIS: An Extensible and Cross-Learning ANFIS Framework for Machine Learning Tasks},
-        month        = april,
+        month        = June,
         year         = 2025,
         doi         = {10.6084/m9.figshare.28802531},
         url          = {https://github.com/thieu1995/X-ANFIS}
